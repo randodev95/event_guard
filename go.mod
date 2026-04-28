@@ -1,6 +1,6 @@
 module github.com/randodev95/event_guard
 
-go 1.26.2
+go 1.25.0
 
 require (
 	github.com/charmbracelet/bubbletea v1.3.10
