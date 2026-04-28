@@ -27,12 +27,12 @@ func NewServeCmd() *cobra.Command {
 		Short: "Start the EventGuard validation server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Senior Pattern: Support Environment Variables (12-Factor App)
-			if p := os.Getenv("EVENTCANVAS_PORT"); p != "" {
+			if p := os.Getenv("EVENT_GUARD_PORT"); p != "" {
 				if val, err := strconv.Atoi(p); err == nil {
 					port = val
 				}
 			}
-			if p := os.Getenv("EVENTCANVAS_PLAN"); p != "" {
+			if p := os.Getenv("EVENT_GUARD_PLAN"); p != "" {
 				servePlanPath = p
 			}
 
