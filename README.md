@@ -4,7 +4,7 @@
 
 EventCanvas is a sophisticated AST-based engine designed to enforce formal business constraints on telemetry data. It bridges the gap between product requirements and data engineering by transforming a YAML-based Tracking Plan into executable warehouse configurations and living documentation.
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/eventcanvas/eventcanvas)](https://goreportcard.com/report/github.com/eventcanvas/eventcanvas)
+[![Go Report Card](https://goreportcard.com/badge/github.com/randodev95/eventcanvas)](https://goreportcard.com/report/github.com/randodev95/eventcanvas)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## ✨ Features
@@ -80,7 +80,33 @@ go build -o eventcanvas main.go
 - [ ] **Runtime Validator**: Go/TypeScript SDKs for real-time event validation.
 - [ ] **Schema Registry Integration**: Push generated schemas to Confluent/AWS Glue.
 - [ ] **Drift Detection**: Compare actual warehouse data against the tracking plan.
-- [ ] **Versioned Plans**: Semantic versioning for tracking plan evolutions.
+- [x] **Versioned Plans**: Semantic versioning for tracking plan evolutions.
+
+## 📦 Use as a Go Library
+
+EventCanvas is designed to be imported into your own Go backend services for real-time validation:
+
+```bash
+go get github.com/randodev95/eventcanvas
+```
+
+```go
+import (
+    "github.com/randodev95/eventcanvas/pkg/validator"
+    "github.com/randodev95/eventcanvas/pkg/parser"
+)
+
+func main() {
+    // Load your plan
+    plan, _ := parser.ParseYAML(data)
+
+    // Create a high-performance validation engine
+    engine := validator.NewEngine(plan)
+
+    // Validate incoming JSON
+    result, err := engine.ValidateJSON(payload)
+}
+```
 
 ---
 

@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/eventcanvas/eventcanvas/internal/git"
-	"github.com/eventcanvas/eventcanvas/internal/impact"
-	"github.com/eventcanvas/eventcanvas/pkg/parser"
-	"github.com/eventcanvas/eventcanvas/internal/storage"
+	"github.com/randodev95/eventcanvas/internal/git"
+	"github.com/randodev95/eventcanvas/internal/impact"
+	"github.com/randodev95/eventcanvas/pkg/parser"
+	"github.com/randodev95/eventcanvas/internal/storage"
 	"github.com/spf13/cobra"
 )
 

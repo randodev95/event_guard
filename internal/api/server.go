@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/eventcanvas/eventcanvas/pkg/validator"
+	"github.com/randodev95/eventcanvas/pkg/validator"
 )
 
 // Server implements the HTTP transport layer for EventCanvas.

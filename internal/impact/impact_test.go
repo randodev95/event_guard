@@ -3,8 +3,8 @@ package impact
 import (
 	"os"
 	"testing"
-	"github.com/eventcanvas/eventcanvas/internal/storage"
-	"github.com/eventcanvas/eventcanvas/pkg/ast"
+	"github.com/randodev95/eventcanvas/internal/storage"
+	"github.com/randodev95/eventcanvas/pkg/ast"
 )
 
 func TestCheckParity_Success(t *testing.T) {

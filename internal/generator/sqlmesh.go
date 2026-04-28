@@ -3,7 +3,7 @@ package generator
 import (
 	"fmt"
 	"strings"
-	"github.com/eventcanvas/eventcanvas/pkg/ast"
+	"github.com/randodev95/eventcanvas/pkg/ast"
 )
 
 func GenerateSQLMesh(plan *ast.TrackingPlan) (string, error) {

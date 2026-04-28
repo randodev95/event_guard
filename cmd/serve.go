@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/eventcanvas/eventcanvas/internal/api"
-	"github.com/eventcanvas/eventcanvas/pkg/parser"
-	"github.com/eventcanvas/eventcanvas/pkg/validator"
+	"github.com/randodev95/eventcanvas/internal/api"
+	"github.com/randodev95/eventcanvas/pkg/parser"
+	"github.com/randodev95/eventcanvas/pkg/validator"
 	"github.com/spf13/cobra"
 )
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/eventcanvas/eventcanvas/pkg/ast"
-	"github.com/eventcanvas/eventcanvas/pkg/parser"
+	"github.com/randodev95/eventcanvas/pkg/ast"
+	"github.com/randodev95/eventcanvas/pkg/parser"
 	"github.com/spf13/cobra"
 )
 

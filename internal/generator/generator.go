@@ -2,7 +2,7 @@ package generator
 
 import (
 	"sort"
-	"github.com/eventcanvas/eventcanvas/pkg/ast"
+	"github.com/randodev95/eventcanvas/pkg/ast"
 )
 
 // ResolvedEvent is the common logical representation of an event after inheritance resolution.
