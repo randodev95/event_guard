@@ -11,7 +11,7 @@ import (
 func NewInitCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init",
-		Short: "Initialize a new EventCanvas project",
+		Short: "Initialize a new EventGuard project",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// 1. Create canvas.yaml
 			defaultYAML := `
@@ -44,12 +44,12 @@ events:
 			}
 			db.Close()
 
-			// 3. Create .github/workflows/eventcanvas.yml
+			// 3. Create .github/workflows/event_guard.yml
 			workflowPath := filepath.Join(".github", "workflows")
 			if err := os.MkdirAll(workflowPath, 0755); err != nil {
 				return err
 			}
-			workflowYAML := `name: EventCanvas Telemetry Guard
+			workflowYAML := `name: EventGuard Telemetry Guard
 on:
   pull_request:
     paths: [canvas.yaml]
@@ -64,11 +64,11 @@ jobs:
       - run: go build -o canvas main.go
       - run: ./canvas impact-check --prev-sha ${{ github.event.pull_request.base.sha }}
 `
-			if err := os.WriteFile(filepath.Join(workflowPath, "eventcanvas.yml"), []byte(workflowYAML), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(workflowPath, "event_guard.yml"), []byte(workflowYAML), 0644); err != nil {
 				return err
 			}
 
-			cmd.Println("Initialized EventCanvas project with GitHub Action.")
+			cmd.Println("Initialized EventGuard project with GitHub Action.")
 			return nil
 		},
 	}

@@ -1,4 +1,4 @@
-name: EventCanvas Telemetry Guard
+name: EventGuard Telemetry Guard
 on:
   pull_request:
     paths: [canvas.yaml]

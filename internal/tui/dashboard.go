@@ -77,7 +77,7 @@ func (m Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Dashboard) View() string {
 	var sb strings.Builder
 
-	sb.WriteString(headerStyle.Render("EventCanvas: Live Telemetry Dashboard"))
+	sb.WriteString(headerStyle.Render("EventGuard: Live Telemetry Dashboard"))
 	sb.WriteString("\n")
 
 	if len(m.events) == 0 {

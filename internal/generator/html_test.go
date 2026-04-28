@@ -40,7 +40,7 @@ flows:
 
 	// Basic assertions to ensure core elements are present
 	expectedSnippets := []string{
-		"EventCanvas Live Docs",
+		"EventGuard Live Docs",
 		"Flow: Test Flow (test_flow)",
 		"Test Event",
 		"test_prop",

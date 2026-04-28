@@ -6,17 +6,17 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o eventcanvas main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o event_guard main.go
 
 # Production Stage
 FROM alpine:latest
 
 WORKDIR /root/
-COPY --from=builder /app/eventcanvas .
+COPY --from=builder /app/event_guard .
 COPY canvas.yaml .
 
 # Standard ports
 EXPOSE 8080
 
-ENTRYPOINT ["./eventcanvas"]
+ENTRYPOINT ["./event_guard"]
 CMD ["serve", "--plan", "canvas.yaml", "--port", "8080"]

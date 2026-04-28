@@ -24,7 +24,7 @@ var servePlanPath string
 func NewServeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: "Start the EventCanvas validation server",
+		Short: "Start the EventGuard validation server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Senior Pattern: Support Environment Variables (12-Factor App)
 			if p := os.Getenv("EVENTCANVAS_PORT"); p != "" {
@@ -60,7 +60,7 @@ func NewServeCmd() *cobra.Command {
 			signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 			go func() {
-				slog.Info(" EventCanvas server starting",
+				slog.Info(" EventGuard server starting",
 					"addr", srv.Addr,
 					"plan", servePlanPath)
 				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

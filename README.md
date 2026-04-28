@@ -1,8 +1,8 @@
-# EventCanvas 🌌
+# EventGuard 🌌
 
 **Deterministic Tracking Plan Engine for High-Integrity Data Pipelines**
 
-EventCanvas is a sophisticated AST-based engine designed to enforce formal business constraints on telemetry data. It bridges the gap between product requirements and data engineering by transforming a YAML-based Tracking Plan into executable warehouse configurations and living documentation.
+EventGuard is a sophisticated AST-based engine designed to enforce formal business constraints on telemetry data. It bridges the gap between product requirements and data engineering by transforming a YAML-based Tracking Plan into executable warehouse configurations and living documentation.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/randodev95/event_guard)](https://goreportcard.com/report/github.com/randodev95/event_guard)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -42,18 +42,18 @@ events:
 ### 2. Generate Documentation
 
 ```bash
-eventcanvas generate -t html -p canvas.yaml -o docs.html
+event_guard generate -t html -p canvas.yaml -o docs.html
 ```
 
 ### 3. Generate Warehouse Models
 
 ```bash
-eventcanvas generate -t dbt -p canvas.yaml -o models/staging/
+event_guard generate -t dbt -p canvas.yaml -o models/staging/
 ```
 
 ## 🏗 Architecture
 
-EventCanvas is built with a decoupled architecture to ensure scalability and maintainability:
+EventGuard is built with a decoupled architecture to ensure scalability and maintainability:
 
 - **`pkg/ast`**: The core logical representation of the tracking plan. Handles property resolution and integrity checks.
 - **`pkg/parser`**: Handles the ingestion of YAML definitions into the AST.
@@ -72,7 +72,7 @@ go test ./...
 
 ### Building the CLI
 ```bash
-go build -o eventcanvas main.go
+go build -o event_guard main.go
 ```
 
 ## 🗺 Roadmap
@@ -84,7 +84,7 @@ go build -o eventcanvas main.go
 
 ## 📦 Use as a Go Library
 
-EventCanvas is designed to be imported into your own Go backend services for real-time validation:
+EventGuard is designed to be imported into your own Go backend services for real-time validation:
 
 ```bash
 go get github.com/randodev95/event_guard
@@ -110,4 +110,4 @@ func main() {
 
 ---
 
-Built with ❤️ by the EventCanvas Team.
+Built with ❤️ by the EventGuard Team.

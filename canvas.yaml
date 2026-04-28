@@ -1,4 +1,4 @@
-# EventCanvas: Lido Extreme Protocol Blueprint
+# EventGuard: Lido Extreme Protocol Blueprint
 # Stateful tracking for LST, LRT, and Vaults with complex navigation
 
 identity_properties: ["wallet_address", "anonymousId"]

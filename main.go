@@ -1,4 +1,4 @@
-// Package main is the entry point for the EventCanvas CLI.
+// Package main is the entry point for the EventGuard CLI.
 package main
 
 import (

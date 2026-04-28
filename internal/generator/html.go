@@ -12,7 +12,7 @@ const htmlTemplate = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EventCanvas: Tracking Plan</title>
+    <title>EventGuard: Tracking Plan</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -109,7 +109,7 @@ const htmlTemplate = `
 <body>
     <div class="container">
         <header>
-            <h1>EventCanvas Live Docs</h1>
+            <h1>EventGuard Live Docs</h1>
             <p style="color: var(--muted)">Deterministic Tracking Plan Documentation</p>
         </header>
 

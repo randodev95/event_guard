@@ -9,7 +9,7 @@ import (
 	"github.com/randodev95/event_guard/pkg/validator"
 )
 
-// Server implements the HTTP transport layer for EventCanvas.
+// Server implements the HTTP transport layer for EventGuard.
 type Server struct {
 	engine *validator.Engine
 	mux    *http.ServeMux

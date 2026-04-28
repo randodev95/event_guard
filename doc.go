@@ -1,5 +1,5 @@
 /*
-Package eventcanvas provides a high-integrity telemetry engine for modeling and validating
+Package event_guard provides a high-integrity telemetry engine for modeling and validating
 complex tracking plans. It supports semantic versioning of schemas, property inheritance,
 and format-agnostic normalization for production data pipelines.
 
