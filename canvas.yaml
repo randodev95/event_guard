@@ -1,0 +1,92 @@
+# EventCanvas: Lido Extreme Protocol Blueprint
+# Stateful tracking for LST, LRT, and Vaults with complex navigation
+
+identity_properties: ["wallet_address", "anonymousId"]
+
+contexts:
+  Anonymous_Context:
+    entity_type: "Visitor"
+    properties:
+      anonymousId: { type: string, required: true }
+      userAgent: { type: string }
+
+  Wallet_Context:
+    entity_type: "Wallet"
+    properties:
+      wallet_address: { type: string, required: true, no_null: true }
+      trace_id: { type: string, required: true } # <-- BREAKING CHANGE
+      wallet_type: { type: string, enum: ["Metamask", "WalletConnect", "Ledger", "Coinbase"] }
+      chain_id: { type: integer, required: true }
+
+  Product_Context:
+    entity_type: "Financial_Product"
+    properties:
+      product_type: { type: string, enum: ["LST", "LRT", "Vault"] }
+      product_name: { type: string, enum: ["stETH", "wstETH", "stMATIC", "Lido-Aave Vault", "EtherFi LRT"] }
+
+events:
+  "Legal Terms Accepted":
+    category: "INTERACTION"
+    entity_type: "Legal"
+    inherits: ["Anonymous_Context"]
+    properties:
+      version: { type: string, required: true }
+
+  "Product Selected":
+    category: "INTERACTION"
+    entity_type: "Discovery"
+    inherits: ["Anonymous_Context"]
+    properties:
+      selection_method: { type: string, enum: ["dropdown", "search", "hero_cta"] }
+      product_name: { type: string, required: true }
+
+  "Wallet Connected":
+    category: "STATE_CHANGE"
+    entity_type: "Wallet"
+    inherits: ["Anonymous_Context", "Wallet_Context"]
+    properties:
+      connection_method: { type: string }
+
+  "Staking Amount Entered":
+    category: "INTERACTION"
+    entity_type: "Stake_Panel"
+    inherits: ["Wallet_Context", "Product_Context"]
+    properties:
+      amount_eth: { type: number, min: 0.0001 }
+
+  "Transaction Initiated":
+    category: "TRANSACTION"
+    entity_type: "Blockchain"
+    inherits: ["Wallet_Context", "Product_Context"]
+    properties:
+      tx_type: { type: string, enum: ["stake", "unstake", "wrap", "unwrap"] }
+
+flows:
+  - id: "deep_staking_journey"
+    name: "Cross-Product Staking Flow"
+    steps:
+      - state: "Landing"
+        event: "Legal Terms Accepted"
+        triggers: ["DIRECT_LOAD"]
+      - state: "Landing"
+        event: "Product Selected"
+        triggers: ["UI_NAVIGATION", "UI_BACK"] # Supports going back from product page
+      - state: "Product_Page"
+        event: "Wallet Connected"
+        triggers: ["UI_NAVIGATION", "BROWSER_BACK"] # Supports browser refresh/back
+      - state: "Stake_Panel"
+        event: "Staking Amount Entered"
+        triggers: ["UI_NAVIGATION"]
+      - state: "Stake_Panel"
+        event: "Transaction Initiated"
+        triggers: ["UI_NAVIGATION"]
+
+  - id: "vault_discovery_path"
+    name: "Vault Entry Path"
+    steps:
+      - state: "Vault_List"
+        event: "Product Selected"
+        triggers: ["UI_NAVIGATION"]
+      - state: "Vault_Details"
+        event: "Product Selected" # Selecting a different vault
+        triggers: ["UI_NAVIGATION", "UI_BACK"]

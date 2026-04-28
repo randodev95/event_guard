@@ -1,0 +1,14 @@
+name: EventCanvas Telemetry Guard
+on:
+  pull_request:
+    paths: [canvas.yaml]
+jobs:
+  impact-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.22' }
+      - run: go build -o canvas main.go
+      - run: ./canvas impact-check --prev-sha ${{ github.event.pull_request.base.sha }}

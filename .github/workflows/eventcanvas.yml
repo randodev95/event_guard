@@ -1,0 +1,28 @@
+name: EventCanvas Telemetry Guard
+
+on:
+  pull_request:
+    paths:
+      - 'canvas.yaml'
+      - '**.go'
+
+jobs:
+  impact-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to find parent SHAs
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build EventCanvas
+        run: go build -o canvas main.go
+
+      - name: Run Impact Check
+        run: |
+          ./canvas impact-check --prev-sha ${{ github.event.pull_request.base.sha }}
