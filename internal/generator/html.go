@@ -2,8 +2,8 @@ package generator
 
 import (
 	"bytes"
-	"html/template"
 	"github.com/randodev95/event_guard/pkg/ast"
+	"html/template"
 )
 
 const htmlTemplate = `
@@ -198,11 +198,13 @@ const htmlTemplate = `
 </html>
 `
 
+// HTMLData holds the template data for the HTML documentation generator.
 type HTMLData struct {
 	Flows          []ast.Flow
 	ResolvedEvents []ResolvedEvent
 }
 
+// GenerateHTML renders the tracking plan into a premium, interactive HTML documentation page.
 func GenerateHTML(plan *ast.TrackingPlan) (string, error) {
 	resolved, err := getResolvedEvents(plan)
 	if err != nil {

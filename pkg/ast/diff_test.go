@@ -30,7 +30,7 @@ func TestDiffPlans_BreakingChanges(t *testing.T) {
 	}
 
 	diffs := DiffPlans(oldPlan, newPlan)
-	
+
 	expectedBreaches := 2
 	if len(diffs) != expectedBreaches {
 		t.Errorf("Expected %d breaking changes, got %d: %v", expectedBreaches, len(diffs), diffs)

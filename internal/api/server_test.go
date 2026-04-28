@@ -28,15 +28,15 @@ events:
 
 	t.Run("Valid Event", func(t *testing.T) {
 		payload := map[string]interface{}{
-			"event": "Login",
-			"userId": "user_123",
+			"event":      "Login",
+			"userId":     "user_123",
 			"properties": map[string]interface{}{},
 		}
 		body, _ := json.Marshal(payload)
-		
+
 		req := httptest.NewRequest("POST", "/validate", bytes.NewBuffer(body))
 		w := httptest.NewRecorder()
-		
+
 		server.ServeHTTP(w, req)
 
 		if w.Code != http.StatusOK {
@@ -52,14 +52,14 @@ events:
 
 	t.Run("Invalid Event", func(t *testing.T) {
 		payload := map[string]interface{}{
-			"event": "Login",
+			"event":      "Login",
 			"properties": map[string]interface{}{},
 		}
 		body, _ := json.Marshal(payload)
-		
+
 		req := httptest.NewRequest("POST", "/validate", bytes.NewBuffer(body))
 		w := httptest.NewRecorder()
-		
+
 		server.ServeHTTP(w, req)
 
 		if w.Code != http.StatusOK {

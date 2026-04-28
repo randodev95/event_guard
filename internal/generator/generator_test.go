@@ -1,9 +1,9 @@
 package generator
 
 import (
+	"github.com/randodev95/event_guard/pkg/ast"
 	"strings"
 	"testing"
-	"github.com/randodev95/event_guard/pkg/ast"
 )
 
 func TestGenerateDBT(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewRootCmd initializes the base command for EventCanvas.
 func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "canvas",
@@ -25,6 +26,7 @@ func NewRootCmd() *cobra.Command {
 	return rootCmd
 }
 
+// Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() error {
 	return NewRootCmd().Execute()
 }

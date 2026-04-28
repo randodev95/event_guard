@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewDevCmd initializes the Dev command.
 func NewDevCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dev",
@@ -40,16 +41,16 @@ func NewDevCmd() *cobra.Command {
 				http.HandleFunc("/", srv.HandleEvent)
 				http.HandleFunc("/api/plan", srv.HandlePlan)
 				http.HandleFunc("/api/events", srv.HandleEvents)
-				cmd.Printf("🚀 Mock server listening on :8080\n")
+				cmd.Printf(" Mock server listening on :8080\n")
 				http.ListenAndServe(":8080", nil)
 			}()
 
 			if headless {
-				cmd.Printf("📡 Headless mode: Listening for events...\n")
+				cmd.Printf(" Headless mode: Listening for events...\n")
 				for up := range updates {
-					status := "✅ VALID"
+					status := " VALID"
 					if !up.IsValid {
-						status = "✗ INVALID"
+						status = " INVALID"
 					}
 					cmd.Printf("[%s] Event: %s\n", status, up.Name)
 					if !up.IsValid {

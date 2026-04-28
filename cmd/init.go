@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"github.com/randodev95/event_guard/internal/storage"
+	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
-	"github.com/spf13/cobra"
-	"github.com/randodev95/event_guard/internal/storage"
 )
 
+// NewInitCmd initializes the Init command.
 func NewInitCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init",

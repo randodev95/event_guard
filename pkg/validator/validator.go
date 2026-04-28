@@ -1,25 +1,28 @@
 package validator
 
 import (
-	"sync"
 	"github.com/randodev95/event_guard/pkg/ast"
 	"github.com/randodev95/event_guard/pkg/normalization"
 	"github.com/xeipuuv/gojsonschema"
+	"sync"
 )
 
+// Result holds the outcome of a validation operation.
 type Result struct {
 	Valid  bool
 	Errors []string
 }
 
 // Engine provides a high-level SDK for validating events against a TrackingPlan.
-// It uses a Mapper to normalize incoming data before validation.
+// It uses a Mapper to normalize incoming data before validation and caches
+// resolved JSON schemas for performance.
 type Engine struct {
 	plan        *ast.TrackingPlan
 	mapper      *normalization.Mapper
 	schemaCache sync.Map // map[string]string (eventName -> JSONSchema)
 }
 
+// NewEngine initializes a new validation engine with the provided tracking plan.
 func NewEngine(plan *ast.TrackingPlan) *Engine {
 	return &Engine{
 		plan:   plan,
@@ -50,11 +53,12 @@ func (e *Engine) ValidateJSON(payload []byte) (*Result, error) {
 	return Validate(normalized, schema)
 }
 
+// Validate performs a low-level validation of a normalized event against a JSON schema.
 func Validate(event *normalization.NormalizedEvent, schema string) (*Result, error) {
 	// Senior FAANG Pattern: Canonicalize data before validation.
 	// All identity and properties are merged into a single object for schema validation.
 	data := make(map[string]interface{})
-	
+
 	// 1. Start with Properties
 	for k, v := range event.Properties {
 		data[k] = v

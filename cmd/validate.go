@@ -13,6 +13,7 @@ import (
 var validatePlanPath string
 var eventNameOverride string
 
+// NewValidateCmd initializes the Validate command.
 func NewValidateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate <file.json>",
@@ -59,9 +60,9 @@ func NewValidateCmd() *cobra.Command {
 			}
 
 			if result.Valid {
-				cmd.Printf("✓ Event [%s] is VALID\n", targetEvent)
+				cmd.Printf(" Event [%s] is VALID\n", targetEvent)
 			} else {
-				cmd.Printf("✗ Event [%s] is INVALID:\n", targetEvent)
+				cmd.Printf(" Event [%s] is INVALID:\n", targetEvent)
 				for _, e := range result.Errors {
 					cmd.Printf("  - %s\n", e)
 				}

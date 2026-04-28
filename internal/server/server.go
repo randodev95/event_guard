@@ -12,6 +12,7 @@ import (
 	"github.com/randodev95/event_guard/pkg/validator"
 )
 
+// Server represents the development mock server that receives and validates live events.
 type Server struct {
 	Plan    *ast.TrackingPlan
 	Updates chan tui.EventMsg
@@ -49,6 +50,7 @@ func (s *Server) HandlePlan(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s.Plan)
 }
 
+// HandleEvent receives a single event, validates it, and streams the result to TUI and SSE clients.
 func (s *Server) HandleEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)

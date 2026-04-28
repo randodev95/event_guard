@@ -1,10 +1,12 @@
 package parser
 
 import (
-	"gopkg.in/yaml.v3"
 	"github.com/randodev95/event_guard/pkg/ast"
+	"gopkg.in/yaml.v3"
 )
 
+// ParseYAML ingests a raw YAML byte slice and returns a validated TrackingPlan AST.
+// It performs taxonomy, integrity, and flow validation during ingestion.
 func ParseYAML(data []byte) (*ast.TrackingPlan, error) {
 	var plan ast.TrackingPlan
 	err := yaml.Unmarshal(data, &plan)

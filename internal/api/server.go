@@ -16,6 +16,7 @@ type Server struct {
 	logger *slog.Logger
 }
 
+// NewServer initializes a new API server with the provided validation engine.
 func NewServer(engine *validator.Engine) *Server {
 	s := &Server{
 		engine: engine,
@@ -35,6 +36,7 @@ func (s *Server) routes() {
 	})
 }
 
+// ServeHTTP implements the http.Handler interface.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
@@ -61,8 +63,8 @@ func (s *Server) handleValidate() http.HandlerFunc {
 			return
 		}
 
-		s.logger.Info("event validated", 
-			"valid", result.Valid, 
+		s.logger.Info("event validated",
+			"valid", result.Valid,
 			"errors_count", len(result.Errors),
 		)
 

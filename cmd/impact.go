@@ -7,13 +7,14 @@ import (
 
 	"github.com/randodev95/event_guard/internal/git"
 	"github.com/randodev95/event_guard/internal/impact"
-	"github.com/randodev95/event_guard/pkg/parser"
 	"github.com/randodev95/event_guard/internal/storage"
+	"github.com/randodev95/event_guard/pkg/parser"
 	"github.com/spf13/cobra"
 )
 
 var prevSHAFlag string
 
+// NewImpactCheckCmd initializes the ImpactCheck command.
 func NewImpactCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "impact-check",

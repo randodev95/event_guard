@@ -16,7 +16,7 @@ func TestDashboard_View_Initial(t *testing.T) {
 
 func TestDashboard_Update(t *testing.T) {
 	m := NewDashboard(nil)
-	
+
 	newModel, _ := m.Update(EventMsg{Name: "Order Completed", IsValid: true})
 	dashboard := newModel.(Dashboard)
 

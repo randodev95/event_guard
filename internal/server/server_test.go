@@ -2,10 +2,10 @@ package server
 
 import (
 	"bytes"
+	"github.com/randodev95/event_guard/pkg/ast"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"github.com/randodev95/event_guard/pkg/ast"
 )
 
 func TestHandleEvent_Integration(t *testing.T) {

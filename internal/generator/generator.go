@@ -1,8 +1,8 @@
 package generator
 
 import (
-	"sort"
 	"github.com/randodev95/event_guard/pkg/ast"
+	"sort"
 )
 
 // ResolvedEvent is the common logical representation of an event after inheritance resolution.
@@ -21,7 +21,7 @@ func getResolvedEvents(plan *ast.TrackingPlan) ([]ResolvedEvent, error) {
 		err   error
 	}
 	results := make(chan result, len(plan.Events))
-	
+
 	for name, event := range plan.Events {
 		go func(n string, e ast.Event) {
 			props, err := plan.ResolveProperties(n)

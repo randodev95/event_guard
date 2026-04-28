@@ -20,6 +20,7 @@ import (
 var port int
 var servePlanPath string
 
+// NewServeCmd initializes the Serve command.
 func NewServeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve",
@@ -59,8 +60,8 @@ func NewServeCmd() *cobra.Command {
 			signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 			go func() {
-				slog.Info("🚀 EventCanvas server starting", 
-					"addr", srv.Addr, 
+				slog.Info(" EventCanvas server starting",
+					"addr", srv.Addr,
 					"plan", servePlanPath)
 				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 					slog.Error("server failed", "err", err)
@@ -69,7 +70,7 @@ func NewServeCmd() *cobra.Command {
 			}()
 
 			<-done
-			slog.Info("🛑 Server stopping...")
+			slog.Info(" Server stopping...")
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -79,7 +80,7 @@ func NewServeCmd() *cobra.Command {
 				return err
 			}
 
-			slog.Info("👋 Server stopped gracefully")
+			slog.Info(" Server stopped gracefully")
 			return nil
 		},
 	}

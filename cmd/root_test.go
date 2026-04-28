@@ -27,7 +27,7 @@ func TestRootCommand_Version(t *testing.T) {
 func TestInitCommand(t *testing.T) {
 	rootCmd := NewRootCmd()
 	rootCmd.AddCommand(NewInitCmd())
-	
+
 	b := bytes.NewBufferString("")
 	rootCmd.SetOut(b)
 	rootCmd.SetArgs([]string{"init"})
@@ -131,4 +131,3 @@ events:
 		t.Errorf("Expected VALID result, got: %s", out)
 	}
 }
-

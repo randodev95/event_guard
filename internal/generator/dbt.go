@@ -7,6 +7,7 @@ import (
 	"github.com/randodev95/event_guard/pkg/ast"
 )
 
+// GenerateDBT creates a DBT schema.yml representation of the tracking plan for data warehouse validation.
 func GenerateDBT(plan *ast.TrackingPlan) (string, error) {
 	resolved, err := getResolvedEvents(plan)
 	if err != nil {
@@ -19,7 +20,7 @@ func GenerateDBT(plan *ast.TrackingPlan) (string, error) {
 	for _, event := range resolved {
 		sb.WriteString(fmt.Sprintf("  - name: %s\n", event.Name))
 		sb.WriteString("    columns:\n")
-		
+
 		propNames := getSortedPropertyNames(event.Properties)
 		for _, propName := range propNames {
 			prop := event.Properties[propName]

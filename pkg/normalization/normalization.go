@@ -25,21 +25,22 @@ type Mapper struct {
 	IdentityPaths map[string][]string
 }
 
+// NewDefaultMapper initializes a Mapper with standard search paths for common tracking schemas.
 func NewDefaultMapper() *Mapper {
 	return &Mapper{
 		IdentityPaths: map[string][]string{
-			"userId":      {"userId", "user_id", "context.userId", "context.user_id"},
-			"anonymousId": {"anonymousId", "anonymous_id", "context.anonymousId"},
+			"userId":         {"userId", "user_id", "context.userId", "context.user_id"},
+			"anonymousId":    {"anonymousId", "anonymous_id", "context.anonymousId"},
 			"wallet_address": {"wallet_address", "walletAddress", "properties.wallet_address"},
 		},
 	}
 }
 
-// Normalize transforms raw JSON into a canonical NormalizedEvent.
+// Map transforms raw JSON into a canonical NormalizedEvent.
 // It resolves casing and nesting issues by following defined search paths.
 func (m *Mapper) Map(data []byte) (*NormalizedEvent, error) {
 	res := gjson.ParseBytes(data)
-	
+
 	event := m.firstPath(res, []string{"event", "event_name", "type"})
 
 	identity := make(map[string]string)

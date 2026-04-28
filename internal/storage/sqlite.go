@@ -8,16 +8,19 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// DB wraps the underlying SQL database connection.
 type DB struct {
 	*sql.DB
 }
 
+// Snapshot represents a collection of event payloads associated with a specific git SHA.
 type Snapshot struct {
 	SHA       string
 	EventName string
 	Payloads  []string
 }
 
+// NewSQLiteDB initializes a new SQLite database at the given path.
 func NewSQLiteDB(path string) (*DB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
@@ -45,6 +48,7 @@ func NewSQLiteDB(path string) (*DB, error) {
 	return &DB{db}, nil
 }
 
+// SaveSnapshot persists an event snapshot to the database.
 func (db *DB) SaveSnapshot(s Snapshot) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -62,6 +66,7 @@ func (db *DB) SaveSnapshot(s Snapshot) error {
 	return tx.Commit()
 }
 
+// GetSnapshots retrieves all event snapshots for a specific git SHA.
 func (db *DB) GetSnapshots(sha string) ([]Snapshot, error) {
 	rows, err := db.Query("SELECT event_name, payload FROM snapshots WHERE sha = ?", sha)
 	if err != nil {
@@ -95,6 +100,7 @@ func (db *DB) GetSnapshots(sha string) ([]Snapshot, error) {
 	return result, nil
 }
 
+// Migrate performs a shadow copy migration to ensure zero-downtime updates to the local database.
 func Migrate(path string, migrationSQL string) error {
 	tmpPath := path + ".tmp"
 

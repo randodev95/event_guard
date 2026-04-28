@@ -1,10 +1,10 @@
 package generator
 
 import (
+	"github.com/randodev95/event_guard/pkg/parser"
 	"os"
 	"path/filepath"
 	"testing"
-	"github.com/randodev95/event_guard/pkg/parser"
 )
 
 func TestGenerateDBT_Golden(t *testing.T) {
@@ -30,7 +30,7 @@ events:
 	}
 
 	goldenPath := filepath.Join("testdata", "dbt_order_completed.sql")
-	
+
 	// If update flag is set, write the golden file
 	if os.Getenv("UPDATE_GOLDEN") == "true" {
 		_ = os.MkdirAll("testdata", 0755)

@@ -25,16 +25,18 @@ var (
 	errorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#f87171")).
 			Bold(true)
-	
+
 	mutedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#64748b"))
 )
 
+// Dashboard represents the live TUI dashboard for monitoring telemetry events.
 type Dashboard struct {
 	events  []EventMsg
 	Updates chan EventMsg
 }
 
+// NewDashboard initializes a new TUI dashboard model.
 func NewDashboard(updates chan EventMsg) Dashboard {
 	return Dashboard{
 		events:  []EventMsg{},
@@ -52,6 +54,7 @@ func (m Dashboard) Init() tea.Cmd {
 	return WaitForUpdates(m.Updates)
 }
 
+// EventMsg represents a validation event message received by the dashboard.
 type EventMsg struct {
 	Name    string
 	IsValid bool

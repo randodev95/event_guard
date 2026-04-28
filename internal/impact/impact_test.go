@@ -1,10 +1,10 @@
 package impact
 
 import (
-	"os"
-	"testing"
 	"github.com/randodev95/event_guard/internal/storage"
 	"github.com/randodev95/event_guard/pkg/ast"
+	"os"
+	"testing"
 )
 
 func TestCheckParity_Success(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 var oldPlanPath string
 var newPlanPath string
 
+// NewDiffCmd initializes the Diff command.
 func NewDiffCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diff",

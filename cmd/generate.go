@@ -14,6 +14,7 @@ var targets []string
 var planPath string
 var outputPath string
 
+// NewGenerateCmd initializes the Generate command.
 func NewGenerateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate",
@@ -37,10 +38,10 @@ func NewGenerateCmd() *cobra.Command {
 				wg.Add(1)
 				go func(targetType string) {
 					defer wg.Done()
-					
+
 					var output string
 					var genErr error
-					
+
 					switch targetType {
 					case "dbt":
 						output, genErr = generator.GenerateDBT(plan)

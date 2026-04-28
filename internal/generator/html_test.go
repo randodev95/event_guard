@@ -1,9 +1,9 @@
 package generator
 
 import (
-	"testing"
-	"strings"
 	"github.com/randodev95/event_guard/pkg/parser"
+	"strings"
+	"testing"
 )
 
 func TestGenerateHTML_Snapshot(t *testing.T) {

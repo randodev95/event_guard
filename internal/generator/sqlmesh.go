@@ -2,10 +2,11 @@ package generator
 
 import (
 	"fmt"
-	"strings"
 	"github.com/randodev95/event_guard/pkg/ast"
+	"strings"
 )
 
+// GenerateSQLMesh creates a SQLMesh model definition for the tracking plan.
 func GenerateSQLMesh(plan *ast.TrackingPlan) (string, error) {
 	resolved, err := getResolvedEvents(plan)
 	if err != nil {
@@ -18,7 +19,7 @@ func GenerateSQLMesh(plan *ast.TrackingPlan) (string, error) {
 		safeName := strings.ToLower(strings.ReplaceAll(event.Name, " ", "_"))
 		sb.WriteString(fmt.Sprintf("MODEL (\n  name analytics.%s,\n  kind FULL,\n  cron '@daily'\n);\n\n", safeName))
 		sb.WriteString("SELECT\n")
-		
+
 		var cols []string
 		propNames := getSortedPropertyNames(event.Properties)
 		for _, propName := range propNames {

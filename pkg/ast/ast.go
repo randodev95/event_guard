@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+// TrackingPlan represents the root of the telemetry taxonomy.
+// It defines the version, global contexts, events, and flows.
 type TrackingPlan struct {
 	Version            string             `yaml:"version"`
 	Contexts           map[string]Context `yaml:"contexts"`
@@ -13,12 +15,15 @@ type TrackingPlan struct {
 	IdentityProperties []string           `yaml:"identity_properties"` // e.g., ["wallet_address", "anonymousId"]
 }
 
+// Context defines a reusable set of properties that can be inherited by events.
+// It typically represents a domain entity like User, Session, or Device.
 type Context struct {
 	Inherits   []string            `yaml:"inherits"`
 	EntityType string              `yaml:"entity_type"` // e.g., User, Session, Device
 	Properties map[string]Property `yaml:"properties"`
 }
 
+// Event represents a single tracking point in the application.
 type Event struct {
 	Category   string              `yaml:"category"` // e.g., PAGE_VIEW, INTERACTION, VISIBILITY
 	EntityType string              `yaml:"entity_type"`
@@ -26,16 +31,19 @@ type Event struct {
 	Properties map[string]Property `yaml:"properties"`
 }
 
+// Property defines the constraints and type for a specific data field.
 type Property struct {
-	Type     string   `yaml:"type"`
-	Required bool     `yaml:"required"`
-	NoNull   bool     `yaml:"no_null"`
-	Unique   bool     `yaml:"unique"`
-	Min      *float64 `yaml:"min"`
-	Max      *float64 `yaml:"max"`
+	Type     string        `yaml:"type"`
+	Required bool          `yaml:"required"`
+	NoNull   bool          `yaml:"no_null"`
+	Unique   bool          `yaml:"unique"`
+	Min      *float64      `yaml:"min"`
+	Max      *float64      `yaml:"max"`
 	Enum     []interface{} `yaml:"enum"`
 }
 
+// ResolveEventSchema generates a JSON Schema representation for a specific event.
+// It resolves all inherited properties and constraints.
 func (p *TrackingPlan) ResolveEventSchema(eventName string) (string, error) {
 	allProps, err := p.ResolveProperties(eventName)
 	if err != nil {
@@ -85,6 +93,7 @@ func (p *TrackingPlan) ResolveEventSchema(eventName string) (string, error) {
 	return string(schemaJSON), nil
 }
 
+// ValidateTaxonomy checks if all events have mandatory metadata fields like category and entity_type.
 func (p *TrackingPlan) ValidateTaxonomy() error {
 	for name, event := range p.Events {
 		if event.Category == "" {
@@ -97,6 +106,7 @@ func (p *TrackingPlan) ValidateTaxonomy() error {
 	return nil
 }
 
+// ValidateIntegrity ensures that each event contains at least one identity property, preventing "Ghost Users".
 func (p *TrackingPlan) ValidateIntegrity() error {
 	keys := p.IdentityProperties
 	if len(keys) == 0 {
@@ -125,6 +135,7 @@ func (p *TrackingPlan) ValidateIntegrity() error {
 	return nil
 }
 
+// ResolveProperties flattens all properties for an event, including those inherited from contexts.
 func (p *TrackingPlan) ResolveProperties(eventName string) (map[string]Property, error) {
 	event, ok := p.Events[eventName]
 	if !ok {
