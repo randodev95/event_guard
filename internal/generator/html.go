@@ -149,10 +149,11 @@ const htmlTemplate = `
         </div>
 
         <div id="events">
-            {{range $name, $event := .Events}}
+            {{range .ResolvedEvents}}
             <div class="event-card">
                 <div class="event-header">
-                    <span class="event-name">{{$name}}</span>
+                    <span class="event-name">{{.Name}}</span>
+                    <span style="color: var(--muted); font-size: 0.875rem">{{.Category}} | {{.EntityType}}</span>
                 </div>
                 <table class="property-table">
                     <thead>
@@ -163,7 +164,7 @@ const htmlTemplate = `
                         </tr>
                     </thead>
                     <tbody>
-                        {{range $propName, $prop := $event.Properties}}
+                        {{range $propName, $prop := .Properties}}
                         <tr>
                             <td><code>{{$propName}}</code></td>
                             <td><span style="color: var(--primary)">{{$prop.Type}}</span></td>
@@ -197,7 +198,22 @@ const htmlTemplate = `
 </html>
 `
 
+type HTMLData struct {
+	Flows          []ast.Flow
+	ResolvedEvents []ResolvedEvent
+}
+
 func GenerateHTML(plan *ast.TrackingPlan) (string, error) {
+	resolved, err := getResolvedEvents(plan)
+	if err != nil {
+		return "", err
+	}
+
+	data := HTMLData{
+		Flows:          plan.Flows,
+		ResolvedEvents: resolved,
+	}
+
 	funcMap := template.FuncMap{
 		"sub": func(a, b int) int { return a - b },
 	}
@@ -207,7 +223,7 @@ func GenerateHTML(plan *ast.TrackingPlan) (string, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, plan); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", err
 	}
 

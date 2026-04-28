@@ -6,6 +6,7 @@ import (
 )
 
 type TrackingPlan struct {
+	Version            string             `yaml:"version"`
 	Contexts           map[string]Context `yaml:"contexts"`
 	Events             map[string]Event   `yaml:"events"`
 	Flows              []Flow             `yaml:"flows"`

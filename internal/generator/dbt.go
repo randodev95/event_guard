@@ -3,17 +3,26 @@ package generator
 import (
 	"fmt"
 	"strings"
+
 	"github.com/eventcanvas/eventcanvas/pkg/ast"
 )
 
 func GenerateDBT(plan *ast.TrackingPlan) (string, error) {
+	resolved, err := getResolvedEvents(plan)
+	if err != nil {
+		return "", err
+	}
+
 	var sb strings.Builder
 	sb.WriteString("version: 2\n\nmodels:\n")
 
-	for eventName, event := range plan.Events {
-		sb.WriteString(fmt.Sprintf("  - name: %s\n", eventName))
+	for _, event := range resolved {
+		sb.WriteString(fmt.Sprintf("  - name: %s\n", event.Name))
 		sb.WriteString("    columns:\n")
-		for propName, prop := range event.Properties {
+		
+		propNames := getSortedPropertyNames(event.Properties)
+		for _, propName := range propNames {
+			prop := event.Properties[propName]
 			sb.WriteString(fmt.Sprintf("      - name: %s\n", propName))
 			if prop.Required {
 				sb.WriteString("        tests:\n")

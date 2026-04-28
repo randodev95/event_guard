@@ -132,39 +132,3 @@ events:
 	}
 }
 
-func TestValidateFlowsCommand(t *testing.T) {
-	rootCmd := NewRootCmd()
-	rootCmd.AddCommand(NewValidateFlowsCmd())
-
-	// Create dummy plan with a valid flow
-	yamlData := `
-events:
-  "Login":
-    category: "INTERACTION"
-    entity_type: "User"
-    properties:
-      userId: { type: string, required: true }
-flows:
-  - id: "login_path"
-    steps:
-      - state: "Home"
-        event: "Login"
-        triggers: ["DIRECT_LOAD"]
-`
-	os.WriteFile("canvas_flows.yaml", []byte(yamlData), 0644)
-	defer os.Remove("canvas_flows.yaml")
-
-	b := bytes.NewBufferString("")
-	rootCmd.SetOut(b)
-	rootCmd.SetArgs([]string{"validate-flows", "--plan", "canvas_flows.yaml"})
-
-	err := rootCmd.Execute()
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	out := b.String()
-	if !strings.Contains(out, "valid") {
-		t.Errorf("Expected valid result, got: %s", out)
-	}
-}

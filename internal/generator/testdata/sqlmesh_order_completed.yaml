@@ -1,0 +1,11 @@
+MODEL (
+  name analytics.order_completed,
+  kind FULL,
+  cron '@daily'
+);
+
+SELECT
+  CAST(total AS DOUBLE) AS total,
+  CAST(userId AS TEXT) AS userId
+FROM raw_events;
+

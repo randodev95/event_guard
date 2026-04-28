@@ -4,7 +4,63 @@ import (
 	"testing"
 
 	"github.com/eventcanvas/eventcanvas/pkg/normalization"
+	"github.com/eventcanvas/eventcanvas/pkg/parser"
 )
+
+func TestEngine_Validate(t *testing.T) {
+	yamlData := []byte(`
+version: "1.0.0"
+identity_properties: ["userId"]
+events:
+  "Staked":
+    category: "TRANSACTION"
+    entity_type: "Wallet"
+    properties:
+      userId: { type: string, required: true }
+      amount: { type: number, required: true }
+`)
+	plan, err := parser.ParseYAML(yamlData)
+	if err != nil {
+		t.Fatalf("ParseYAML failed: %v", err)
+	}
+	engine := NewEngine(plan)
+
+	// Valid event
+	payload := []byte(`{"event": "Staked", "userId": "0x123", "properties": {"amount": 10.5}}`)
+	result, err := engine.ValidateJSON(payload)
+	if err != nil || !result.Valid {
+		t.Errorf("Expected valid event, got err: %v, result: %v", err, result)
+	}
+
+	// Invalid event (missing property)
+	invalidPayload := []byte(`{"event": "Staked", "userId": "0x123", "properties": {}}`)
+	result, _ = engine.ValidateJSON(invalidPayload)
+	if result.Valid {
+		t.Error("Expected invalid event (missing required property), but it passed")
+	}
+}
+
+func TestEngine_CasingMapping(t *testing.T) {
+	yamlData := []byte(`
+version: "1.0.0"
+identity_properties: ["userId"]
+events:
+  "Login":
+    category: "INTERACTION"
+    entity_type: "User"
+    properties:
+      userId: { type: string, required: true }
+`)
+	plan, _ := parser.ParseYAML(yamlData)
+	engine := NewEngine(plan)
+
+	// Test snake_case input mapping to camelCase schema
+	payload := []byte(`{"event": "Login", "user_id": "user_123"}`)
+	result, err := engine.ValidateJSON(payload)
+	if err != nil || !result.Valid {
+		t.Errorf("Expected valid mapping from user_id to userId, got err: %v, result: %v", err, result)
+	}
+}
 
 func TestValidate_Success(t *testing.T) {
 	event := &normalization.NormalizedEvent{
@@ -12,7 +68,9 @@ func TestValidate_Success(t *testing.T) {
 		Properties: map[string]interface{}{
 			"total": 50.0,
 		},
-		UserID: "user_123",
+		Identity: map[string]string{
+			"userId": "user_123",
+		},
 	}
 
 	schema := `{
@@ -39,7 +97,9 @@ func TestValidate_TypeMismatch(t *testing.T) {
 		Properties: map[string]interface{}{
 			"total": "fifty", // Should be number
 		},
-		UserID: "user_123",
+		Identity: map[string]string{
+			"userId": "user_123",
+		},
 	}
 
 	schema := `{
@@ -65,7 +125,9 @@ func TestValidate_EnvelopeInjection(t *testing.T) {
 		Properties: map[string]interface{}{
 			"foo": "bar",
 		},
-		UserID: "user_123",
+		Identity: map[string]string{
+			"userId": "user_123",
+		},
 	}
 
 	// Schema requires userId, which is only at the root (event.UserID)

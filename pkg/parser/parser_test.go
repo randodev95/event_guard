@@ -4,6 +4,27 @@ import (
 	"testing"
 )
 
+func TestParseYAML_Version(t *testing.T) {
+	yamlData := []byte(`
+version: "1.2.3"
+events:
+  "Order Completed":
+    category: "INTERACTION"
+    entity_type: "Transaction"
+    properties:
+      userId: { type: string, required: true }
+`)
+
+	plan, err := ParseYAML(yamlData)
+	if err != nil {
+		t.Fatalf("ParseYAML failed: %v", err)
+	}
+
+	if plan.Version != "1.2.3" {
+		t.Errorf("Expected version '1.2.3', got '%s'", plan.Version)
+	}
+}
+
 func TestParseYAML_Simple(t *testing.T) {
 	yamlData := []byte(`
 events:

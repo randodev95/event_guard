@@ -16,10 +16,11 @@ func NewRootCmd() *cobra.Command {
 
 	rootCmd.AddCommand(NewInitCmd())
 	rootCmd.AddCommand(NewDevCmd())
+	rootCmd.AddCommand(NewDiffCmd())
 	rootCmd.AddCommand(NewImpactCheckCmd())
 	rootCmd.AddCommand(NewGenerateCmd())
 	rootCmd.AddCommand(NewValidateCmd())
-	rootCmd.AddCommand(NewValidateFlowsCmd())
+	rootCmd.AddCommand(NewServeCmd())
 
 	return rootCmd
 }

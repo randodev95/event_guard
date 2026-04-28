@@ -7,14 +7,22 @@ import (
 )
 
 func GenerateSQLMesh(plan *ast.TrackingPlan) (string, error) {
+	resolved, err := getResolvedEvents(plan)
+	if err != nil {
+		return "", err
+	}
+
 	var sb strings.Builder
 
-	for eventName, event := range plan.Events {
-		sb.WriteString(fmt.Sprintf("MODEL (\n  name analytics.%s,\n  kind FULL,\n  cron '@daily'\n);\n\n", strings.ToLower(strings.ReplaceAll(eventName, " ", "_"))))
+	for _, event := range resolved {
+		safeName := strings.ToLower(strings.ReplaceAll(event.Name, " ", "_"))
+		sb.WriteString(fmt.Sprintf("MODEL (\n  name analytics.%s,\n  kind FULL,\n  cron '@daily'\n);\n\n", safeName))
 		sb.WriteString("SELECT\n")
 		
 		var cols []string
-		for propName, prop := range event.Properties {
+		propNames := getSortedPropertyNames(event.Properties)
+		for _, propName := range propNames {
+			prop := event.Properties[propName]
 			sqlType := "TEXT"
 			switch prop.Type {
 			case "number":

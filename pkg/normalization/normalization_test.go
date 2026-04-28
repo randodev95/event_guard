@@ -22,8 +22,8 @@ func TestNormalize_Segment_EventName(t *testing.T) {
 		t.Errorf("Expected event 'Order Completed', got '%s'", normalized.Event)
 	}
 
-	if normalized.UserID != "user_123" {
-		t.Errorf("Expected userId 'user_123', got '%s'", normalized.UserID)
+	if normalized.Identity["userId"] != "user_123" {
+		t.Errorf("Expected userId 'user_123', got '%s'", normalized.Identity["userId"])
 	}
 
 	if total, ok := normalized.Properties["total"].(float64); !ok || total != 50.00 {
@@ -43,7 +43,7 @@ func TestNormalize_AnonymousID(t *testing.T) {
 		t.Fatalf("Normalize failed: %v", err)
 	}
 
-	if normalized.UserID != "anon_456" {
-		t.Errorf("Expected userId 'anon_456' (from anonymousId), got '%s'", normalized.UserID)
+	if normalized.Identity["userId"] != "anon_456" {
+		t.Errorf("Expected userId 'anon_456' (from anonymousId), got '%s'", normalized.Identity["userId"])
 	}
 }
