@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/spf13/cobra"
-	"github.com/randodev95/eventcanvas/internal/storage"
+	"github.com/randodev95/event_guard/internal/storage"
 )
 
 func NewInitCmd() *cobra.Command {

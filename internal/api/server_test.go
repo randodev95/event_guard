@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/randodev95/eventcanvas/pkg/parser"
-	"github.com/randodev95/eventcanvas/pkg/validator"
+	"github.com/randodev95/event_guard/pkg/parser"
+	"github.com/randodev95/event_guard/pkg/validator"
 )
 
 func TestServer_ValidateHandler(t *testing.T) {

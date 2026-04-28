@@ -4,7 +4,7 @@ complex tracking plans. It supports semantic versioning of schemas, property inh
 and format-agnostic normalization for production data pipelines.
 
 Installation:
-    go get github.com/randodev95/eventcanvas
+    go get github.com/randodev95/event_guard
 
 Core Components:
     - pkg/ast: Core tracking plan data models and resolution logic.
@@ -12,8 +12,8 @@ Core Components:
     - pkg/normalization: Format-agnostic mapping (camelCase, snake_case, nested).
 
 Example Usage:
-    import "github.com/randodev95/eventcanvas/pkg/validator"
-    import "github.com/randodev95/eventcanvas/pkg/parser"
+    import "github.com/randodev95/event_guard/pkg/validator"
+    import "github.com/randodev95/event_guard/pkg/parser"
 
     plan, _ := parser.ParseYAML(data)
     engine := validator.NewEngine(plan)

@@ -1,10 +1,10 @@
 package impact
 
 import (
-	"github.com/randodev95/eventcanvas/pkg/normalization"
-	"github.com/randodev95/eventcanvas/internal/storage"
-	"github.com/randodev95/eventcanvas/pkg/validator"
-	"github.com/randodev95/eventcanvas/pkg/ast"
+	"github.com/randodev95/event_guard/pkg/normalization"
+	"github.com/randodev95/event_guard/internal/storage"
+	"github.com/randodev95/event_guard/pkg/validator"
+	"github.com/randodev95/event_guard/pkg/ast"
 )
 
 type Breach struct {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"github.com/randodev95/eventcanvas/pkg/ast"
+	"github.com/randodev95/event_guard/pkg/ast"
 )
 
 func TestHandleEvent_Integration(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/randodev95/eventcanvas/internal/generator"
-	"github.com/randodev95/eventcanvas/pkg/parser"
+	"github.com/randodev95/event_guard/internal/generator"
+	"github.com/randodev95/event_guard/pkg/parser"
 	"github.com/spf13/cobra"
 )
 

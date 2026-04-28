@@ -4,7 +4,7 @@
 
 EventCanvas is a sophisticated AST-based engine designed to enforce formal business constraints on telemetry data. It bridges the gap between product requirements and data engineering by transforming a YAML-based Tracking Plan into executable warehouse configurations and living documentation.
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/randodev95/eventcanvas)](https://goreportcard.com/report/github.com/randodev95/eventcanvas)
+[![Go Report Card](https://goreportcard.com/badge/github.com/randodev95/event_guard)](https://goreportcard.com/report/github.com/randodev95/event_guard)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## ✨ Features
@@ -87,13 +87,13 @@ go build -o eventcanvas main.go
 EventCanvas is designed to be imported into your own Go backend services for real-time validation:
 
 ```bash
-go get github.com/randodev95/eventcanvas
+go get github.com/randodev95/event_guard
 ```
 
 ```go
 import (
-    "github.com/randodev95/eventcanvas/pkg/validator"
-    "github.com/randodev95/eventcanvas/pkg/parser"
+    "github.com/randodev95/event_guard/pkg/validator"
+    "github.com/randodev95/event_guard/pkg/parser"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/randodev95/eventcanvas/pkg/ast"
+	"github.com/randodev95/event_guard/pkg/ast"
 )
 
 func GenerateDBT(plan *ast.TrackingPlan) (string, error) {

@@ -1,4 +1,4 @@
-module github.com/randodev95/eventcanvas
+module github.com/randodev95/event_guard
 
 go 1.26.2
 

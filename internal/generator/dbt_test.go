@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"github.com/randodev95/eventcanvas/pkg/parser"
+	"github.com/randodev95/event_guard/pkg/parser"
 )
 
 func TestGenerateDBT_Golden(t *testing.T) {

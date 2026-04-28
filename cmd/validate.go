@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/randodev95/eventcanvas/pkg/normalization"
-	"github.com/randodev95/eventcanvas/pkg/parser"
-	"github.com/randodev95/eventcanvas/pkg/validator"
+	"github.com/randodev95/event_guard/pkg/normalization"
+	"github.com/randodev95/event_guard/pkg/parser"
+	"github.com/randodev95/event_guard/pkg/validator"
 	"github.com/spf13/cobra"
 )
 

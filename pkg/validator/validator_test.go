@@ -3,8 +3,8 @@ package validator
 import (
 	"testing"
 
-	"github.com/randodev95/eventcanvas/pkg/normalization"
-	"github.com/randodev95/eventcanvas/pkg/parser"
+	"github.com/randodev95/event_guard/pkg/normalization"
+	"github.com/randodev95/event_guard/pkg/parser"
 )
 
 func TestEngine_Validate(t *testing.T) {

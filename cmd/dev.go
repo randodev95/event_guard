@@ -5,9 +5,9 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/randodev95/eventcanvas/internal/server"
-	"github.com/randodev95/eventcanvas/internal/tui"
-	"github.com/randodev95/eventcanvas/pkg/parser"
+	"github.com/randodev95/event_guard/internal/server"
+	"github.com/randodev95/event_guard/internal/tui"
+	"github.com/randodev95/event_guard/pkg/parser"
 	"github.com/spf13/cobra"
 )
 

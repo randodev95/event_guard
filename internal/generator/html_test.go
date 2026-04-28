@@ -3,7 +3,7 @@ package generator
 import (
 	"testing"
 	"strings"
-	"github.com/randodev95/eventcanvas/pkg/parser"
+	"github.com/randodev95/event_guard/pkg/parser"
 )
 
 func TestGenerateHTML_Snapshot(t *testing.T) {

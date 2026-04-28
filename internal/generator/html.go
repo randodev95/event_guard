@@ -3,7 +3,7 @@ package generator
 import (
 	"bytes"
 	"html/template"
-	"github.com/randodev95/eventcanvas/pkg/ast"
+	"github.com/randodev95/event_guard/pkg/ast"
 )
 
 const htmlTemplate = `

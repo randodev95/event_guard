@@ -6,10 +6,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/randodev95/eventcanvas/internal/tui"
-	"github.com/randodev95/eventcanvas/pkg/ast"
-	"github.com/randodev95/eventcanvas/pkg/normalization"
-	"github.com/randodev95/eventcanvas/pkg/validator"
+	"github.com/randodev95/event_guard/internal/tui"
+	"github.com/randodev95/event_guard/pkg/ast"
+	"github.com/randodev95/event_guard/pkg/normalization"
+	"github.com/randodev95/event_guard/pkg/validator"
 )
 
 type Server struct {

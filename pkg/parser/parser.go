@@ -2,7 +2,7 @@ package parser
 
 import (
 	"gopkg.in/yaml.v3"
-	"github.com/randodev95/eventcanvas/pkg/ast"
+	"github.com/randodev95/event_guard/pkg/ast"
 )
 
 func ParseYAML(data []byte) (*ast.TrackingPlan, error) {

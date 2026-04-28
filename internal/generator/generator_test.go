@@ -3,7 +3,7 @@ package generator
 import (
 	"strings"
 	"testing"
-	"github.com/randodev95/eventcanvas/pkg/ast"
+	"github.com/randodev95/event_guard/pkg/ast"
 )
 
 func TestGenerateDBT(t *testing.T) {
