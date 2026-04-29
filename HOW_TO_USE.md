@@ -1,84 +1,86 @@
-# EventGuard: How to Use
+# EventGuard: Implementation Guide
 
-EventGuard provides specialized workflows for every member of the product and data team.
+This guide provides a problem-oriented approach to integrating EventGuard into your data pipeline.
 
-## 1. For Analysts (Taxonomy Design)
+## 1. Local Development (For Developers & Analysts)
 
-Tracking plans live in `maps/*.yaml`. Use **Mixins** to avoid duplication.
+The EventGuard CLI is your primary tool for managing tracking plans and validating events locally.
 
-### Designing a Contract
-```yaml
-taxonomy:
-  mixins:
-    Identity:
-      properties:
-        userId: { type: string, required: true }
-  events:
-    Login:
-      imports: [Identity]
-      properties:
-        method: { type: string, enum: ["email", "google"] }
+### Initialize a Project
+Set up a standard directory structure and genesis tracking plan.
+```bash
+event_guard init
 ```
 
-### Checking for Breaking Changes
-Run `impact-check` in your PR to verify your changes won't break existing telemetry.
+### Validate a Sample Event
+Verify that a local JSON payload conforms to your tracking plan.
+```bash
+event_guard validate payload.json --plan maps/
+```
+
+### Propose a Change
+Automate the creation of a new Git branch and commit for your tracking plan updates.
+```bash
+event_guard propose -m "Add discount_code to Purchase event"
+```
+
+---
+
+## 2. CI/CD Integration (For Data Engineers)
+
+Prevent breaking changes from reaching production by enforcing the tracking contract in your CI pipeline.
+
+### Impact Check
+Compare the current plan against previous snapshots to detect breaking schema changes.
 ```bash
 event_guard impact-check --prev-sha main
 ```
+*Tip: Integrate this into your GitHub Actions to automatically block PRs that violate the contract.*
 
 ---
 
-## 2. For Frontend Developers (WASM Shift-Left)
+## 3. Production Deployment (For Platform Engineers)
 
-Validate events in the browser using the **exact same** logic as the backend.
+Enforce validation at scale using the high-performance Go engine or the validation microservice.
 
-### Exporting for Web
+### Running the Microservice
+Start a low-latency validation server with live-reload support.
+```bash
+event_guard serve --port 8080 --plan maps/
+```
+
+### In-Process Validation (Go)
+For maximum performance, use the validator directly in your ingestion pipeline.
+```go
+engine := validator.NewEngine(plan)
+res, err := engine.ValidateJSON(payload)
+```
+*Note: In-process validation typically averages **11.8μs**.*
+
+---
+
+## 4. Frontend & Browser (For Web Developers)
+
+Shift validation to the client-side to catch errors before they are sent over the wire.
+
+### Exporting to WASM
+Compile your tracking plan and validation logic into a single WebAssembly binary.
 ```bash
 event_guard export-wasm --hash
 ```
-This generates `validator.wasm`. Load it into your SDK to catch errors before ingestion.
+The `--hash` flag obfuscates event names for security, ensuring your business logic isn't exposed in the client-side bundle.
 
 ---
 
-## 3. For Backend Developers (Go Middleware)
+## 5. Documentation & Visualization (For Product Teams)
 
-Integrate EventGuard into high-throughput ingestion pipes.
+Keep your documentation in sync with your implementation automatically.
 
-### Validation Loop
-```go
-import "github.com/randodev95/event_guard/pkg/validator"
-
-// 1. Initialize engine (usually during startup)
-engine := validator.NewEngine(plan)
-engine.Warmup()
-
-// 2. Validate in hot path
-res, err := engine.ValidateJSON(payload)
-if !res.Valid {
-    // Handle invalid data (e.g., push to DLQ)
-    log.Printf("Invalid event: %v", res.Errors)
-}
-```
-**Performance**: Full validation takes **~11.8μs**.
-
----
-
-## 4. For Product Teams (Visualization)
-
-EventGuard automatically generates documentation and flow diagrams.
-
-### Generate Docs
+### Generate Visualizations
 ```bash
-event_guard generate --target html --output docs.html
-event_guard generate --target mermaid --output flows.mmd
+# Generate HTML Documentation
+event_guard generate --target html --output docs/index.html
+
+# Generate Mermaid Flow Diagrams
+event_guard generate --target mermaid --output docs/flows.mmd
 ```
-These outputs provide a source-of-truth for what is being tracked and how users flow through the system.
-
----
-
-## CLI Reference
-
-- `init`: Setup a new project.
-- `propose -m "msg"`: Auto-branch and commit tracking plan changes.
-- `validate <file>`: Test a sample payload locally.
-- `serve`: Start a validation microservice.

@@ -22,7 +22,7 @@ dlq.jsonl
 test_sandbox/
 
 # Documentation Artifacts
-# article.md EXCLUDED per user request (tracked)
+article*.md
 
 # Go
 vendor/
