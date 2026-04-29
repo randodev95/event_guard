@@ -1,0 +1,32 @@
+# Binaries
+event_guard
+canvas
+validator.wasm
+eventguard
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.log
+*.jsonl
+*.db
+*.out
+*.test
+*.prof
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+article.md
+canvas.yaml.bak
+
+# Go dependencies
+vendor/
