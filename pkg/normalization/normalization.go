@@ -1,25 +1,53 @@
 package normalization
 
 import (
+	"fmt"
 	"github.com/tidwall/gjson"
+	"sync"
 )
 
+const MaxFlattenDepth = 100
+
 // NormalizedEvent is the canonical representation used by the validator.
-// It is agnostic to the input format (Segment, Snowplow, Custom).
 type NormalizedEvent struct {
 	Event      string                 `json:"event"`
-	Identity   map[string]string      `json:"identity"` // e.g. {"userId": "...", "anonymousId": "..."}
+	Identity   map[string]string      `json:"identity"`
 	Properties map[string]interface{} `json:"properties"`
+}
+
+var eventPool = sync.Pool{
+	New: func() interface{} {
+		return &NormalizedEvent{
+			Identity:   make(map[string]string, 8),
+			Properties: make(map[string]interface{}, 32),
+		}
+	},
+}
+
+// AcquireEvent gets a NormalizedEvent from the pool.
+func AcquireEvent() *NormalizedEvent {
+	return eventPool.Get().(*NormalizedEvent)
+}
+
+// ReleaseEvent returns a NormalizedEvent to the pool after clearing it.
+func ReleaseEvent(e *NormalizedEvent) {
+	e.Reset()
+	eventPool.Put(e)
+}
+
+// Reset clears the event data for reuse.
+func (e *NormalizedEvent) Reset() {
+	e.Event = ""
+	clear(e.Identity)
+	clear(e.Properties)
 }
 
 // Mapper handles the mapping from raw JSON to the canonical NormalizedEvent.
 type Mapper struct {
-	// IdentityPaths defines where to look for identity properties.
-	// We support multiple paths (camelCase, snake_case, nested).
 	IdentityPaths map[string][]string
+	EventPaths    []string
 }
 
-// NewDefaultMapper initializes a Mapper with standard search paths for common tracking schemas.
 func NewDefaultMapper() *Mapper {
 	return &Mapper{
 		IdentityPaths: map[string][]string{
@@ -27,56 +55,45 @@ func NewDefaultMapper() *Mapper {
 			"anonymousId":    {"anonymousId", "anonymous_id", "context.anonymousId"},
 			"wallet_address": {"wallet_address", "walletAddress", "properties.wallet_address"},
 		},
+		EventPaths: []string{"event", "event_name", "type", "properties.event_name"},
 	}
 }
 
 // Map transforms raw JSON into a canonical NormalizedEvent.
 func (m *Mapper) Map(data []byte) (*NormalizedEvent, error) {
 	res := gjson.ParseBytes(data)
+	norm := AcquireEvent()
 
-	event := m.firstPath(res, []string{"event", "event_name", "type"})
+	norm.Event = m.firstPath(res, m.EventPaths)
 
-	identity := make(map[string]string)
 	for key, paths := range m.IdentityPaths {
 		if val := m.firstPath(res, paths); val != "" {
-			identity[key] = val
+			norm.Identity[key] = val
 		}
 	}
 
-	// Senior Pattern: Logical Fallback
-	// If userId is missing but anonymousId exists, we treat anonymousId as the identity.
-	if identity["userId"] == "" && identity["anonymousId"] != "" {
-		identity["userId"] = identity["anonymousId"]
+	// Fallback: use anonymousId if userId is missing.
+	if norm.Identity["userId"] == "" && norm.Identity["anonymousId"] != "" {
+		norm.Identity["userId"] = norm.Identity["anonymousId"]
 	}
 
-	// 3. Properties extraction with Deep Flattening
-	properties := make(map[string]interface{})
-	
-	// Flatten "properties" block
+	// Flatten "properties"
 	if propsRes := res.Get("properties"); propsRes.Exists() && propsRes.IsObject() {
-		val := propsRes.Value()
-		if m, ok := val.(map[string]interface{}); ok {
-			for k, v := range Flatten(m, "", 0) {
-				properties[k] = v
-			}
-		}
-	}
-	
-	// Flatten "context" block (Standard in Segment/Rudderstack)
-	if ctxRes := res.Get("context"); ctxRes.Exists() && ctxRes.IsObject() {
-		val := ctxRes.Value()
-		if m, ok := val.(map[string]interface{}); ok {
-			for k, v := range Flatten(m, "context", 0) {
-				properties[k] = v
-			}
+		if err := FlattenGJSON(propsRes, "properties", 0, norm.Properties); err != nil {
+			ReleaseEvent(norm)
+			return nil, err
 		}
 	}
 
-	return &NormalizedEvent{
-		Event:      event,
-		Identity:   identity,
-		Properties: properties,
-	}, nil
+	// Flatten "context"
+	if ctxRes := res.Get("context"); ctxRes.Exists() && ctxRes.IsObject() {
+		if err := FlattenGJSON(ctxRes, "context", 0, norm.Properties); err != nil {
+			ReleaseEvent(norm)
+			return nil, err
+		}
+	}
+
+	return norm, nil
 }
 
 func (m *Mapper) firstPath(res gjson.Result, paths []string) string {
@@ -88,25 +105,30 @@ func (m *Mapper) firstPath(res gjson.Result, paths []string) string {
 	return ""
 }
 
-// Flatten flattens a nested map into dot-notation (e.g. {"a": {"b": 1}} -> {"a.b": 1}).
-func Flatten(m map[string]interface{}, prefix string, depth int) map[string]interface{} {
-	out := make(map[string]interface{})
-	if depth > 10 {
-		return out // Stop at 10 levels deep to prevent stack overflow
+// FlattenGJSON flattens a gjson.Result into a destination map.
+func FlattenGJSON(res gjson.Result, prefix string, depth int, out map[string]interface{}) error {
+	if depth > MaxFlattenDepth {
+		return fmt.Errorf("excessive json nesting: depth exceeds limit of %d", MaxFlattenDepth)
 	}
-	for k, v := range m {
-		key := k
+
+	var err error
+	res.ForEach(func(key, value gjson.Result) bool {
+		k := key.String()
+		fullKey := k
 		if prefix != "" {
-			key = prefix + "." + k
+			fullKey = prefix + "." + k
 		}
 
-		if inner, ok := v.(map[string]interface{}); ok {
-			for ik, iv := range Flatten(inner, key, depth+1) {
-				out[ik] = iv
+		if value.IsObject() {
+			if e := FlattenGJSON(value, fullKey, depth+1, out); e != nil {
+				err = e
+				return false
 			}
 		} else {
-			out[key] = v
+			out[fullKey] = value.Value()
 		}
-	}
-	return out
+		return true
+	})
+
+	return err
 }

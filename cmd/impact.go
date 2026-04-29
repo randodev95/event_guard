@@ -12,10 +12,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var prevSHAFlag string
-
 // NewImpactCheckCmd initializes the ImpactCheck command.
-func NewImpactCheckCmd() *cobra.Command {
+func NewImpactCheckCmd(planPath *string) *cobra.Command {
+	var prevSHAFlag string
 	cmd := &cobra.Command{
 		Use:   "impact-check",
 		Short: "Verify schema changes against previous success samples",
@@ -31,19 +30,15 @@ func NewImpactCheckCmd() *cobra.Command {
 			}
 
 			// 1. Load Plan
-			data, err := os.ReadFile("canvas.yaml")
+			plan, err := parser.LoadPlan(*planPath)
 			if err != nil {
-				return fmt.Errorf("failed to read canvas.yaml: %w", err)
-			}
-			plan, err := parser.ParseYAML(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse canvas.yaml: %w", err)
+				return fmt.Errorf("failed to load plan: %w", err)
 			}
 
 			// 2. Load DB
-			dbPath := filepath.Join(".canvas", "canvas.db")
+			dbPath := filepath.Join(".event_guard", "event_guard.db")
 			if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-				return fmt.Errorf("local database not found at %s. Run 'canvas init' or 'canvas dev' first", dbPath)
+				return fmt.Errorf("local database not found at %s. Run 'event_guard init' or 'event_guard dev' first", dbPath)
 			}
 
 			db, err := storage.NewSQLiteDB(dbPath)
@@ -63,7 +58,7 @@ func NewImpactCheckCmd() *cobra.Command {
 				for _, b := range breaches {
 					cmd.Printf("  - Event [%s]: %v\n", b.EventName, b.Errors)
 				}
-				os.Exit(1)
+				return fmt.Errorf("impact check failed with %d breaches", len(breaches))
 			}
 
 			cmd.Printf("No breaking changes detected against SHA [%s].\n", targetSHA)

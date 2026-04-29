@@ -7,46 +7,27 @@ import (
 
 // ResolvedEvent is the common logical representation of an event after inheritance resolution.
 type ResolvedEvent struct {
-	Name       string
-	Category   string
-	EntityType string
-	Properties map[string]ast.Property
+	Name        string
+	Description string
+	Properties  map[string]ast.PropertyV2
 }
 
 // getResolvedEvents returns a sorted list of events with their properties resolved.
 // This ensures stable output across all generators.
 func getResolvedEvents(plan *ast.TrackingPlan) ([]ResolvedEvent, error) {
-	type result struct {
-		event ResolvedEvent
-		err   error
-	}
-	results := make(chan result, len(plan.Events))
+	events := plan.Taxonomy.Events
+	resolved := make([]ResolvedEvent, 0, len(events))
 
-	for name, event := range plan.Events {
-		go func(n string, e ast.Event) {
-			props, err := plan.ResolveProperties(n)
-			if err != nil {
-				results <- result{err: err}
-				return
-			}
-			results <- result{
-				event: ResolvedEvent{
-					Name:       n,
-					Category:   e.Category,
-					EntityType: e.EntityType,
-					Properties: props,
-				},
-			}
-		}(name, event)
-	}
-
-	resolved := make([]ResolvedEvent, 0, len(plan.Events))
-	for i := 0; i < len(plan.Events); i++ {
-		res := <-results
-		if res.err != nil {
-			return nil, res.err
+	for name, event := range events {
+		props, err := plan.Taxonomy.FlattenEvent(name)
+		if err != nil {
+			return nil, err
 		}
-		resolved = append(resolved, res.event)
+		resolved = append(resolved, ResolvedEvent{
+			Name:        name,
+			Description: event.Description,
+			Properties:  props,
+		})
 	}
 
 	// Sort by Name for stability
@@ -58,7 +39,7 @@ func getResolvedEvents(plan *ast.TrackingPlan) ([]ResolvedEvent, error) {
 }
 
 // getSortedPropertyNames returns the keys of the property map sorted alphabetically.
-func getSortedPropertyNames(props map[string]ast.Property) []string {
+func getSortedPropertyNames(props map[string]ast.PropertyV2) []string {
 	keys := make([]string, 0, len(props))
 	for k := range props {
 		keys = append(keys, k)

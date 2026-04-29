@@ -118,30 +118,25 @@ const htmlTemplate = `
         </div>
 
         <div id="flows">
-            {{range $flow := .Flows}}
+            {{range $flowName, $flow := .Flows}}
             <div class="event-card" style="border-left: 4px solid var(--accent)">
                 <div class="event-header">
-                    <span class="event-name">Flow: {{.Name}} ({{.ID}})</span>
+                    <span class="event-name">Flow: {{$flow.Namespace}}</span>
                 </div>
                 <div style="padding: 1rem 0">
-                    {{range $i, $step := .Steps}}
+                    {{range $nodeName, $node := $flow.Nodes}}
                     <div style="display: flex; align-items: flex-start; margin-bottom: 1rem">
                         <div style="background: var(--primary); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; margin-right: 1rem; flex-shrink: 0">
-                            {{$i}}
+                            {{$node.Type}}
                         </div>
                         <div>
-                            <div style="font-weight: 600">{{.State}}</div>
+                            <div style="font-weight: 600">{{$nodeName}}</div>
                             <div style="font-size: 0.875rem; color: var(--muted)">
-                                Trigger: {{range .Triggers}}<span class="badge badge-optional" style="margin-right: 0.25rem">{{.}}</span>{{end}}
-                            </div>
-                            <div style="font-size: 0.875rem; color: var(--accent)">
-                                Event: <code>{{.Event}}</code>
+                                {{if $node.Event}}Trigger: {{$node.Event}}{{end}}
+                                {{if $node.ListenFor}}Listen: {{$node.ListenFor}}{{end}}
                             </div>
                         </div>
                     </div>
-                    {{if lt $i (sub (len $flow.Steps) 1)}}
-                    <div style="border-left: 2px dashed var(--muted); height: 20px; margin-left: 11px; margin-top: -10px; margin-bottom: 5px"></div>
-                    {{end}}
                     {{end}}
                 </div>
             </div>
@@ -153,8 +148,8 @@ const htmlTemplate = `
             <div class="event-card">
                 <div class="event-header">
                     <span class="event-name">{{.Name}}</span>
-                    <span style="color: var(--muted); font-size: 0.875rem">{{.Category}} | {{.EntityType}}</span>
                 </div>
+                <div style="color: var(--muted); margin-bottom: 1rem">{{.Description}}</div>
                 <table class="property-table">
                     <thead>
                         <tr>
@@ -183,24 +178,13 @@ const htmlTemplate = `
             {{end}}
         </div>
     </div>
-
-    <script>
-        function filter() {
-            let input = document.getElementById('search').value.toLowerCase();
-            let cards = document.getElementsByClassName('event-card');
-            for (let card of cards) {
-                let text = card.innerText.toLowerCase();
-                card.style.display = text.includes(input) ? "block" : "none";
-            }
-        }
-    </script>
 </body>
 </html>
 `
 
 // HTMLData holds the template data for the HTML documentation generator.
 type HTMLData struct {
-	Flows          []ast.Flow
+	Flows          map[string]ast.FlowPlan
 	ResolvedEvents []ResolvedEvent
 }
 
@@ -216,10 +200,7 @@ func GenerateHTML(plan *ast.TrackingPlan) (string, error) {
 		ResolvedEvents: resolved,
 	}
 
-	funcMap := template.FuncMap{
-		"sub": func(a, b int) int { return a - b },
-	}
-	tmpl, err := template.New("docs").Funcs(funcMap).Parse(htmlTemplate)
+	tmpl, err := template.New("docs").Parse(htmlTemplate)
 	if err != nil {
 		return "", err
 	}

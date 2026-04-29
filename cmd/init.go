@@ -16,50 +16,51 @@ func NewInitCmd() *cobra.Command {
 		Use:   "init",
 		Short: "Initialize a new EventGuard project",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// 1. Create canvas.yaml
-			defaultYAML := `
-identity_properties: ["userId"]
+			// 1. Create maps/
+			if err := os.MkdirAll("maps", 0755); err != nil {
+				return err
+			}
+			defaultYAML := `version: "1.0.0"
 
-contexts:
-  Universal_User_Context:
-    entity_type: "User"
-    properties:
-      userId: { type: string, required: true }
+taxonomy:
+  identity_properties: ["userId"]
+  events:
+    "Login":
+      properties:
+        userId: { type: string, required: true }
 
-events:
-  "Login Started":
-    category: "INTERACTION"
-    entity_type: "User"
-    inherits: ["Universal_User_Context"]
-    triggers:
-      - from_state: "Landing"
-        type: "DIRECT_LOAD"
-
-  "Order Completed":
-    category: "TRANSACTION"
-    entity_type: "Transaction"
-    inherits: ["Universal_User_Context"]
-    properties:
-      total: { type: number, required: true }
+    "Order Completed":
+      properties:
+        userId: { type: string, required: true }
+        total: { type: number, required: true }
 
 flows:
-  - id: "onboarding_flow"
-    name: "User Onboarding"
-    steps:
-      - state: "Landing"
-        event: "Login Started"
-        triggers: ["DIRECT_LOAD"]
+  Main_Flow:
+    namespace: "Main"
+    nodes:
+      Start:
+        type: TriggerNode
+        event: "Login"
+        transitions: [{target: Purchase}]
+      
+      Purchase:
+        type: WaitNode
+        listen_for: "Order Completed"
+        transitions: [{target: End}]
+
+      End:
+        type: TerminalNode
 `
-			if err := os.WriteFile("canvas.yaml", []byte(defaultYAML), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join("maps", "plan.yaml"), []byte(defaultYAML), 0644); err != nil {
 				return err
 			}
 
-			// 2. Create .canvas directory and canvas.db
-			if err := os.MkdirAll(".canvas", 0755); err != nil {
+			// 2. Create .event_guard directory and event_guard.db
+			if err := os.MkdirAll(".event_guard", 0755); err != nil {
 				return err
 			}
 
-			db, err := storage.NewSQLiteDB(filepath.Join(".canvas", "canvas.db"))
+			db, err := storage.NewSQLiteDB(filepath.Join(".event_guard", "event_guard.db"))
 			if err != nil {
 				return err
 			}
@@ -73,7 +74,7 @@ flows:
 			workflowYAML := `name: EventGuard Telemetry Guard
 on:
   pull_request:
-    paths: [canvas.yaml]
+    paths: [maps/]
 jobs:
   impact-check:
     runs-on: ubuntu-latest
@@ -82,15 +83,15 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-go@v5
         with: { go-version: '1.22' }
-      - run: go build -o canvas main.go
-      - run: ./canvas impact-check --prev-sha ${{ github.event.pull_request.base.sha }}
+      - run: go build -o event_guard main.go
+      - run: ./event_guard impact-check --prev-sha ${{ github.event.pull_request.base.sha }}
 `
 			if err := os.WriteFile(filepath.Join(workflowPath, "event_guard.yml"), []byte(workflowYAML), 0644); err != nil {
 				return err
 			}
 
 			// 4. Create .gitignore
-			gitignore := ".canvas/\ncanvas\nevent_guard\n"
+			gitignore := ".event_guard/\nevent_guard\nevent_guard\n"
 			if err := os.WriteFile(".gitignore", []byte(gitignore), 0644); err != nil {
 				return err
 			}
@@ -118,7 +119,7 @@ This repository contains the deterministic tracking plan for our telemetry pipel
 				}
 			} else {
 				w, _ := repo.Worktree()
-				w.Add("canvas.yaml")
+				w.Add("maps/")
 				w.Add(".gitignore")
 				w.Add("README.md")
 				w.Add(".github/workflows/event_guard.yml")

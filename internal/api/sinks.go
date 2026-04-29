@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"sync"
@@ -15,6 +14,7 @@ import (
 type FileSink struct {
 	mu   sync.Mutex
 	path string
+	file *os.File
 }
 
 func NewFileSink(path string) *FileSink {
@@ -22,26 +22,36 @@ func NewFileSink(path string) *FileSink {
 }
 
 func (s *FileSink) Close() error {
-	return nil // File is opened per-push in current impl. Good for stability, bad for throughput.
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.file != nil {
+		err := s.file.Close()
+		s.file = nil
+		return err
+	}
+	return nil
 }
 
 func (s *FileSink) Push(payload []byte, errors []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
-	f, err := os.OpenFile(s.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
+
+	if s.file == nil {
+		f, err := os.OpenFile(s.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		s.file = f
 	}
-	defer f.Close()
-	
+
 	entry := map[string]interface{}{
-		"payload": string(payload),
+		"payload": json.RawMessage(payload),
 		"errors":  errors,
+		"ts":      time.Now().Unix(),
 	}
 	data, _ := json.Marshal(entry)
-	f.Write(data)
-	f.Write([]byte("\n"))
+	s.file.Write(data)
+	s.file.Write([]byte("\n"))
 	return nil
 }
 
@@ -121,11 +131,8 @@ func (s *AsyncSink) Close() error {
 }
 
 func (s *AsyncSink) Push(payload []byte, errors []string) error {
-	select {
-	case s.queue <- asyncMsg{payload: payload, errors: errors}:
-		return nil
-	default:
-		slog.Error("DLQ buffer full, dropping event", "workers", s.workers)
-		return fmt.Errorf("async sink buffer full, event dropped")
-	}
+	// Blocking push implements backpressure.
+	// Production systems should prefer this over dropping events silently.
+	s.queue <- asyncMsg{payload: payload, errors: errors}
+	return nil
 }

@@ -1,0 +1,56 @@
+version: "2.0.0"
+flows:
+  Main_Loop:
+    description: "Catch-all flow"
+    nodes:
+      End: {type: TerminalNode}
+      T_Login: {type: TriggerNode, event: Login, transitions: [{target: End}]}
+      T_Signup: {type: TriggerNode, event: Signup, transitions: [{target: End}]}
+      T_Purchase: {type: TriggerNode, event: Purchase, transitions: [{target: End}]}
+      T_View_Product: {type: TriggerNode, event: View_Product, transitions: [{target: End}]}
+      T_Add_to_Cart: {type: TriggerNode, event: Add_to_Cart, transitions: [{target: End}]}
+      T_Remove_from_Cart: {type: TriggerNode, event: Remove_from_Cart, transitions: [{target: End}]}
+      T_Checkout_Started: {type: TriggerNode, event: Checkout_Started, transitions: [{target: End}]}
+      T_Checkout_Step_Completed: {type: TriggerNode, event: Checkout_Step_Completed, transitions: [{target: End}]}
+      T_Payment_Info_Entered: {type: TriggerNode, event: Payment_Info_Entered, transitions: [{target: End}]}
+      T_Order_Completed: {type: TriggerNode, event: Order_Completed, transitions: [{target: End}]}
+      T_Search: {type: TriggerNode, event: Search, transitions: [{target: End}]}
+      T_Filter_Applied: {type: TriggerNode, event: Filter_Applied, transitions: [{target: End}]}
+      T_Promotion_Clicked: {type: TriggerNode, event: Promotion_Clicked, transitions: [{target: End}]}
+      T_Coupon_Applied: {type: TriggerNode, event: Coupon_Applied, transitions: [{target: End}]}
+      T_Review_Submitted: {type: TriggerNode, event: Review_Submitted, transitions: [{target: End}]}
+      T_Account_Updated: {type: TriggerNode, event: Account_Updated, transitions: [{target: End}]}
+      T_Password_Changed: {type: TriggerNode, event: Password_Changed, transitions: [{target: End}]}
+      T_Profile_Viewed: {type: TriggerNode, event: Profile_Viewed, transitions: [{target: End}]}
+      T_Friend_Added: {type: TriggerNode, event: Friend_Added, transitions: [{target: End}]}
+      T_Message_Sent: {type: TriggerNode, event: Message_Sent, transitions: [{target: End}]}
+      T_Notification_Clicked: {type: TriggerNode, event: Notification_Clicked, transitions: [{target: End}]}
+      T_Settings_Changed: {type: TriggerNode, event: Settings_Changed, transitions: [{target: End}]}
+      T_Feedback_Given: {type: TriggerNode, event: Feedback_Given, transitions: [{target: End}]}
+      T_Support_Ticket_Created: {type: TriggerNode, event: Support_Ticket_Created, transitions: [{target: End}]}
+      T_Subscription_Started: {type: TriggerNode, event: Subscription_Started, transitions: [{target: End}]}
+      T_Subscription_Cancelled: {type: TriggerNode, event: Subscription_Cancelled, transitions: [{target: End}]}
+      T_Trial_Started: {type: TriggerNode, event: Trial_Started, transitions: [{target: End}]}
+      T_Trial_Ended: {type: TriggerNode, event: Trial_Ended, transitions: [{target: End}]}
+      T_App_Installed: {type: TriggerNode, event: App_Installed, transitions: [{target: End}]}
+      T_App_Opened: {type: TriggerNode, event: App_Opened, transitions: [{target: End}]}
+      T_App_Updated: {type: TriggerNode, event: App_Updated, transitions: [{target: End}]}
+      T_Deep_Link_Clicked: {type: TriggerNode, event: Deep_Link_Clicked, transitions: [{target: End}]}
+      T_Push_Notification_Received: {type: TriggerNode, event: Push_Notification_Received, transitions: [{target: End}]}
+      T_Feature_Used: {type: TriggerNode, event: Feature_Used, transitions: [{target: End}]}
+      T_Tutorial_Started: {type: TriggerNode, event: Tutorial_Started, transitions: [{target: End}]}
+      T_Tutorial_Completed: {type: TriggerNode, event: Tutorial_Completed, transitions: [{target: End}]}
+      T_Level_Up: {type: TriggerNode, event: Level_Up, transitions: [{target: End}]}
+      T_Achievement_Unlocked: {type: TriggerNode, event: Achievement_Unlocked, transitions: [{target: End}]}
+      T_Invite_Sent: {type: TriggerNode, event: Invite_Sent, transitions: [{target: End}]}
+      T_Invite_Accepted: {type: TriggerNode, event: Invite_Accepted, transitions: [{target: End}]}
+      T_Content_Shared: {type: TriggerNode, event: Content_Shared, transitions: [{target: End}]}
+      T_Content_Saved: {type: TriggerNode, event: Content_Saved, transitions: [{target: End}]}
+      T_Content_Deleted: {type: TriggerNode, event: Content_Deleted, transitions: [{target: End}]}
+      T_Language_Changed: {type: TriggerNode, event: Language_Changed, transitions: [{target: End}]}
+      T_Dark_Mode_Toggled: {type: TriggerNode, event: Dark_Mode_Toggled, transitions: [{target: End}]}
+      T_Region_Changed: {type: TriggerNode, event: Region_Changed, transitions: [{target: End}]}
+      T_Device_Linked: {type: TriggerNode, event: Device_Linked, transitions: [{target: End}]}
+      T_Device_Unlinked: {type: TriggerNode, event: Device_Unlinked, transitions: [{target: End}]}
+      T_Session_Started: {type: TriggerNode, event: Session_Started, transitions: [{target: End}]}
+      T_Session_Ended: {type: TriggerNode, event: Session_Ended, transitions: [{target: End}]}

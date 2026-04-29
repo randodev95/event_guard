@@ -10,24 +10,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var validatePlanPath string
-var eventNameOverride string
-
 // NewValidateCmd initializes the Validate command.
 func NewValidateCmd() *cobra.Command {
+	var validatePlanPath string
+	var eventNameOverride string
+
 	cmd := &cobra.Command{
 		Use:   "validate <file.json>",
 		Short: "Validate a JSON payload against the tracking plan",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// 1. Load Plan
-			data, err := os.ReadFile(validatePlanPath)
+			plan, err := parser.LoadPlan(validatePlanPath)
 			if err != nil {
-				return fmt.Errorf("failed to read plan: %w", err)
-			}
-			plan, err := parser.ParseYAML(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse plan: %w", err)
+				return fmt.Errorf("failed to load plan from %s: %w", validatePlanPath, err)
 			}
 
 			// 2. Load Payload
@@ -67,14 +63,14 @@ func NewValidateCmd() *cobra.Command {
 				for _, e := range result.Errors {
 					cmd.Printf("  - %s\n", e)
 				}
-				os.Exit(1)
+				return fmt.Errorf("validation failed for event [%s]", targetEvent)
 			}
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&validatePlanPath, "plan", "p", "canvas.yaml", "Path to tracking plan")
+	cmd.Flags().StringVarP(&validatePlanPath, "plan", "p", "maps/", "Path to tracking plan")
 	cmd.Flags().StringVarP(&eventNameOverride, "event", "e", "", "Override event name from payload")
 
 	return cmd

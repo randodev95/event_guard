@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"fmt"
 	"net/http"
-	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/randodev95/event_guard/internal/server"
@@ -12,19 +12,16 @@ import (
 )
 
 // NewDevCmd initializes the Dev command.
-func NewDevCmd() *cobra.Command {
+func NewDevCmd(planPath *string) *cobra.Command {
+	var headless bool
 	cmd := &cobra.Command{
 		Use:   "dev",
 		Short: "Start the local development mock server and TUI",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// 1. Load plan
-			data, err := os.ReadFile("canvas.yaml")
+			plan, err := parser.LoadPlan(*planPath)
 			if err != nil {
-				return err
-			}
-			plan, err := parser.ParseYAML(data)
-			if err != nil {
-				return err
+				return fmt.Errorf("failed to load plan: %w", err)
 			}
 
 			// 2. Setup EventBus
@@ -38,11 +35,11 @@ func NewDevCmd() *cobra.Command {
 
 			// Start server in background
 			go func() {
-				http.HandleFunc("/", srv.HandleEvent)
-				http.HandleFunc("/api/plan", srv.HandlePlan)
-				http.HandleFunc("/api/events", srv.HandleEvents)
-				cmd.Printf(" Mock server listening on :8080\n")
-				http.ListenAndServe(":8080", nil)
+				mux := http.NewServeMux()
+				mux.HandleFunc("/", srv.HandleEvent)
+				mux.HandleFunc("/api/plan", srv.HandlePlan)
+				mux.HandleFunc("/api/events", srv.HandleEvents)
+				http.ListenAndServe(":8080", mux)
 			}()
 
 			if headless {
@@ -74,5 +71,3 @@ func NewDevCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&headless, "headless", false, "Run server without TUI")
 	return cmd
 }
-
-var headless bool

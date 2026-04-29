@@ -18,33 +18,29 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-var port int
-var servePlanPath string
-
 // NewServeCmd initializes the Serve command.
-func NewServeCmd() *cobra.Command {
+func NewServeCmd(planPath *string) *cobra.Command {
+	var port int
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Start the EventGuard validation server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Senior Pattern: Support Environment Variables (12-Factor App)
+			currentPlanPath := *planPath
+
+			// Support Environment Variables (12-Factor App)
 			if p := os.Getenv("EVENT_GUARD_PORT"); p != "" {
 				if val, err := strconv.Atoi(p); err == nil {
 					port = val
 				}
 			}
 			if p := os.Getenv("EVENT_GUARD_PLAN"); p != "" {
-				servePlanPath = p
+				currentPlanPath = p
 			}
 
 			// 1. Load Plan
-			data, err := os.ReadFile(servePlanPath)
+			plan, err := parser.LoadPlan(currentPlanPath)
 			if err != nil {
-				return fmt.Errorf("failed to read plan: %w", err)
-			}
-			plan, err := parser.ParseYAML(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse plan: %w", err)
+				return fmt.Errorf("failed to load plan from %s: %w", currentPlanPath, err)
 			}
 
 			// 2. Initialize Engine & Server
@@ -67,11 +63,7 @@ func NewServeCmd() *cobra.Command {
 
 			// 4. Admin Reload Handler
 			handler.SetReloadHandler(func() error {
-				data, err := os.ReadFile(servePlanPath)
-				if err != nil {
-					return err
-				}
-				newPlan, err := parser.ParseYAML(data)
+				newPlan, err := parser.LoadPlan(currentPlanPath)
 				if err != nil {
 					return err
 				}
@@ -90,15 +82,12 @@ func NewServeCmd() *cobra.Command {
 						case event, ok := <-watcher.Events:
 							if !ok { return }
 							if event.Op&fsnotify.Write == fsnotify.Write {
-								slog.Info("config changed, reloading...", "file", servePlanPath)
-								data, err := os.ReadFile(servePlanPath)
+								slog.Info("config changed, reloading...", "file", currentPlanPath)
+								newPlan, err := parser.LoadPlan(currentPlanPath)
 								if err == nil {
-									newPlan, err := parser.ParseYAML(data)
-									if err == nil {
-										newEngine := validator.NewEngine(newPlan)
-										newEngine.Warmup()
-										handler.UpdateEngine(newEngine)
-									}
+									newEngine := validator.NewEngine(newPlan)
+									newEngine.Warmup()
+									handler.UpdateEngine(newEngine)
 								}
 							}
 						case err, ok := <-watcher.Errors:
@@ -107,7 +96,7 @@ func NewServeCmd() *cobra.Command {
 						}
 					}
 				}()
-				watcher.Add(servePlanPath)
+				watcher.Add(currentPlanPath)
 			}
 
 			srv := &http.Server{
@@ -122,7 +111,7 @@ func NewServeCmd() *cobra.Command {
 			go func() {
 				slog.Info(" EventGuard server starting",
 					"addr", srv.Addr,
-					"plan", servePlanPath)
+					"plan", currentPlanPath)
 				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 					slog.Error("server failed", "err", err)
 					os.Exit(1)
@@ -146,7 +135,6 @@ func NewServeCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVarP(&port, "port", "v", 8080, "Port to listen on")
-	cmd.Flags().StringVarP(&servePlanPath, "plan", "p", "canvas.yaml", "Path to tracking plan")
 
 	return cmd
 }

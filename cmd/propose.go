@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -11,10 +10,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var proposeMessage string
-
 // NewProposeCmd initializes the Propose command.
-func NewProposeCmd() *cobra.Command {
+func NewProposeCmd(planPath *string) *cobra.Command {
+	var proposeMessage string
 	cmd := &cobra.Command{
 		Use:   "propose",
 		Short: "Automate branching, committing, and pushing for tracking plan changes",
@@ -30,10 +28,11 @@ func NewProposeCmd() *cobra.Command {
 				return err
 			}
 
-			// 2. Read canvas.yaml content to memory
-			planData, err := os.ReadFile("canvas.yaml")
+			// 2. Stage changes
+			// We stage everything to be safe.
+			_, err = w.Add(".")
 			if err != nil {
-				return fmt.Errorf("failed to read canvas.yaml: %w", err)
+				return fmt.Errorf("failed to stage changes: %w", err)
 			}
 
 			// 3. Create Branch Reference
@@ -44,38 +43,25 @@ func NewProposeCmd() *cobra.Command {
 
 			branchName := fmt.Sprintf("analyst/change-%d", time.Now().Unix())
 			refName := plumbing.NewBranchReferenceName(branchName)
-			cmd.Printf(" Creating branch [%s]...\n", branchName)
 			
+			// Point the new branch to current head
 			ref := plumbing.NewHashReference(refName, head.Hash())
 			err = repo.Storer.SetReference(ref)
 			if err != nil {
 				return fmt.Errorf("failed to create branch reference: %w", err)
 			}
 
-			// 4. Switch to it (Force: true ensures we switch even if dirty, we'll restore content)
-			err = w.Checkout(&git.CheckoutOptions{
-				Branch: refName,
-				Force:  true,
-			})
+			// 4. Update HEAD to point to the new branch WITHOUT touching the worktree
+			// This is equivalent to 'git checkout -b' but safer for uncommitted changes
+			err = repo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, refName))
 			if err != nil {
-				return fmt.Errorf("failed to switch to branch: %w", err)
+				return fmt.Errorf("failed to update HEAD: %w", err)
 			}
 
-			// 5. Restore canvas.yaml and Stage
-			err = os.WriteFile("canvas.yaml", planData, 0644)
-			if err != nil {
-				return fmt.Errorf("failed to restore canvas.yaml: %w", err)
-			}
-
-			cmd.Printf(" Staging canvas.yaml...\n")
-			_, err = w.Add("canvas.yaml")
-			if err != nil {
-				return fmt.Errorf("failed to stage canvas.yaml: %w", err)
-			}
-
-			// 6. Commit
-			if proposeMessage == "" {
-				proposeMessage = "Tracking plan update: " + time.Now().Format(time.RFC3339)
+			// 5. Commit
+			msg := proposeMessage
+			if msg == "" {
+				msg = "Tracking plan update: " + time.Now().Format(time.RFC3339)
 			}
 			
 			// Try to get author from git config
@@ -95,28 +81,22 @@ func NewProposeCmd() *cobra.Command {
 				}
 			}
 
-			cmd.Printf(" Committing changes: %s\n", proposeMessage)
-			hash, err := w.Commit(proposeMessage, &git.CommitOptions{
+			hash, err := w.Commit(msg, &git.CommitOptions{
 				Author: author,
 			})
 			if err != nil {
+				if err == git.ErrEmptyCommit {
+					cmd.Println(" No changes detected. Nothing to propose.")
+					return nil
+				}
 				return fmt.Errorf("commit failed: %w", err)
 			}
 			cmd.Printf(" Commit created: %s\n", hash.String())
 
-			// 5. Push
-			cmd.Printf(" Pushing to remote...\n")
+			// 6. Push
 			err = repo.Push(&git.PushOptions{})
-			if err != nil {
-				if err == git.NoErrAlreadyUpToDate {
-					cmd.Println(" Already up to date.")
-				} else if err == git.ErrRemoteNotFound {
-					cmd.Println(" Warning: No remote found. Skipping push.")
-				} else {
-					cmd.Printf(" Warning: Push failed (%v). You may need to push manually.\n", err)
-				}
-			} else {
-				cmd.Printf(" Successfully pushed to remote!\n")
+			if err != nil && err != git.NoErrAlreadyUpToDate && err != git.ErrRemoteNotFound {
+				cmd.Printf(" Warning: Push failed (%v). You may need to push manually.\n", err)
 			}
 
 			cmd.Printf("\n Propose complete! Now open a Pull Request to merge [%s] into [main].\n", branchName)

@@ -5,9 +5,9 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/randodev95/event_guard/pkg/validator"
-	"sync"
 )
 
 // Sink defines a pluggable destination for rejected events (DLQ).
@@ -18,21 +18,20 @@ type Sink interface {
 
 // Server implements the HTTP transport layer for EventGuard.
 type Server struct {
-	mu     sync.RWMutex
-	engine *validator.Engine
+	engine atomic.Pointer[validator.Engine]
 	mux    *http.ServeMux
-	logger   *slog.Logger
-	sink     Sink
+	logger *slog.Logger
+	sink   Sink
 	onReload func() error
 }
 
 // NewServer initializes a new API server with the provided validation engine.
 func NewServer(engine *validator.Engine) *Server {
 	s := &Server{
-		engine: engine,
 		mux:    http.NewServeMux(),
 		logger: slog.Default(),
 	}
+	s.engine.Store(engine)
 	s.routes()
 	return s
 }
@@ -48,12 +47,10 @@ func (s *Server) SetReloadHandler(h func() error) {
 }
 
 func (s *Server) UpdateEngine(engine *validator.Engine) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.engine != nil {
-		s.engine.ResetCache()
+	old := s.engine.Swap(engine)
+	if old != nil {
+		old.ResetCache()
 	}
-	s.engine = engine
 	s.logger.Info("validation engine reloaded")
 }
 
@@ -104,9 +101,11 @@ func (s *Server) handleValidate() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		s.mu.RLock()
-		engine := s.engine
-		s.mu.RUnlock()
+		engine := s.engine.Load()
+		if engine == nil {
+			http.Error(w, "Engine not initialized", http.StatusInternalServerError)
+			return
+		}
 
 		result, err := engine.ValidateJSON(body)
 		if err != nil {

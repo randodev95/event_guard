@@ -1,154 +1,72 @@
 package parser
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestParseYAML_Version(t *testing.T) {
-	yamlData := []byte(`
-version: "1.2.3"
-events:
-  "Order Completed":
-    category: "INTERACTION"
-    entity_type: "Transaction"
-    properties:
-      userId: { type: string, required: true }
-`)
+func TestParseYAML(t *testing.T) {
+	t.Run("Valid Plan", func(t *testing.T) {
+		data := `
+taxonomy:
+  events:
+    Signup: {}
+flows:
+  Onboarding:
+    nodes:
+      Start: { type: TriggerNode, event: Signup, transitions: [{target: End}] }
+      End: { type: TerminalNode }
+`
+		plan, err := ParseYAML([]byte(data))
+		require.NoError(t, err)
+		assert.Contains(t, plan.Taxonomy.Events, "Signup")
+	})
 
-	plan, err := ParseYAML(yamlData)
-	if err != nil {
-		t.Fatalf("ParseYAML failed: %v", err)
-	}
-
-	if plan.Version != "1.2.3" {
-		t.Errorf("Expected version '1.2.3', got '%s'", plan.Version)
-	}
+	t.Run("Invalid Plan (Orphan Event)", func(t *testing.T) {
+		data := `
+taxonomy:
+  events:
+    Signup: {}
+    Orphan: {}
+flows:
+  Onboarding:
+    nodes:
+      Start: { type: TriggerNode, event: Signup }
+`
+		_, err := ParseYAML([]byte(data))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "orphan event")
+	})
 }
 
-func TestParseYAML_Simple(t *testing.T) {
-	yamlData := []byte(`
-events:
-  "Order Completed":
-    category: "INTERACTION"
-    entity_type: "Transaction"
-    properties:
-      userId: { type: string, required: true }
-      total:
-        type: number
-        required: true
-`)
+func TestLoadProject(t *testing.T) {
+	tempDir := t.TempDir()
+	mapsDir := filepath.Join(tempDir, "maps")
+	require.NoError(t, os.MkdirAll(mapsDir, 0755))
 
-	plan, err := ParseYAML(yamlData)
-	if err != nil {
-		t.Fatalf("ParseYAML failed: %v", err)
-	}
+	taxonomyYAML := `
+version: "1.0.0"
+taxonomy:
+  events:
+    Login: { description: "User Login" }
+`
+	flowYAML := `
+flows:
+  LoginFlow:
+    nodes:
+      Start: { type: TriggerNode, event: Login, transitions: [{target: End}] }
+      End: { type: TerminalNode }
+`
+	require.NoError(t, os.WriteFile(filepath.Join(mapsDir, "taxonomy.yaml"), []byte(taxonomyYAML), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(mapsDir, "flow.yaml"), []byte(flowYAML), 0644))
 
-	event, ok := plan.Events["Order Completed"]
-	if !ok {
-		t.Fatal("Expected 'Order Completed' event not found")
-	}
+	plan, err := LoadProject(mapsDir)
+	require.NoError(t, err)
 
-	prop, ok := event.Properties["total"]
-	if !ok {
-		t.Fatal("Expected 'total' property not found")
-	}
-
-	if prop.Type != "number" {
-		t.Errorf("Expected type 'number', got '%s'", prop.Type)
-	}
-}
-
-func TestParseYAML_Inheritance(t *testing.T) {
-	yamlData := []byte(`
-contexts:
-  Universal_Page_Context:
-    properties:
-      url:
-        type: string
-        required: true
-      userId:
-        type: string
-        required: true
-events:
-  "Button Clicked":
-    category: "INTERACTION"
-    entity_type: "Button"
-    inherits: ["Universal_Page_Context"]
-    properties:
-      button_id:
-        type: string
-        required: true
-`)
-
-	plan, err := ParseYAML(yamlData)
-	if err != nil {
-		t.Fatalf("ParseYAML failed: %v", err)
-	}
-
-	event, ok := plan.Events["Button Clicked"]
-	if !ok {
-		t.Fatal("Expected 'Button Clicked' event not found")
-	}
-
-	if len(event.Inherits) == 0 || event.Inherits[0] != "Universal_Page_Context" {
-		t.Errorf("Expected event to inherit from 'Universal_Page_Context'")
-	}
-}
-
-func TestResolveEventSchema(t *testing.T) {
-	yamlData := []byte(`
-contexts:
-  Universal_Page_Context:
-    properties:
-      url:
-        type: string
-        required: true
-      userId:
-        type: string
-        required: true
-events:
-  "Button Clicked":
-    category: "INTERACTION"
-    entity_type: "Button"
-    inherits: ["Universal_Page_Context"]
-    properties:
-      button_id:
-        type: string
-        required: true
-`)
-
-	plan, err := ParseYAML(yamlData)
-	if err != nil {
-		t.Fatalf("ParseYAML failed: %v", err)
-	}
-
-	schema, err := plan.ResolveEventSchema("Button Clicked")
-	if err != nil {
-		t.Fatalf("ResolveEventSchema failed: %v", err)
-	}
-
-	// Simple check for presence of both properties in the resulting JSON schema string
-	if !contains(schema, "url") || !contains(schema, "button_id") {
-		t.Errorf("Resolved schema missing properties. Got: %s", schema)
-	}
-}
-
-func TestParseYAML_IntegrityFailure(t *testing.T) {
-	yamlData := []byte(`
-events:
-  "Login":
-    category: "INTERACTION"
-    entity_type: "User"
-    properties:
-      timestamp: { type: string, required: true }
-    # Missing userId
-`)
-	_, err := ParseYAML(yamlData)
-	if err == nil {
-		t.Error("Expected error for integrity failure (missing userId), but got nil")
-	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || (len(s) > len(substr) && (s[:len(substr)] == substr || contains(s[1:], substr))))
+	assert.Equal(t, "User Login", plan.Taxonomy.Events["Login"].Description)
+	assert.Contains(t, plan.Flows, "LoginFlow")
 }

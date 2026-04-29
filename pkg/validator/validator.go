@@ -9,7 +9,6 @@ import (
 )
 
 // Contract defines the interface for retrieving schemas and identity rules.
-// This allows the engine to be decoupled from the concrete AST implementation.
 type Contract interface {
 	ResolveEventSchema(eventName string) (string, error)
 	GetIdentityProperties() []string
@@ -33,7 +32,14 @@ type Engine struct {
 	contract           Contract
 	mapper             *normalization.Mapper
 	compiledCache      sync.Map // map[string]*gojsonschema.Schema
+	compileMu          sync.Mutex
 	observationHandler ObservationHandler
+}
+
+var validationMapPool = sync.Pool{
+	New: func() interface{} {
+		return make(map[string]interface{}, 64)
+	},
 }
 
 // NewEngine initializes a new validation engine with the provided contract.
@@ -80,6 +86,7 @@ func (e *Engine) ValidateJSON(payload []byte) (*Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("normalization failed: %w", err)
 	}
+	defer normalization.ReleaseEvent(normalized)
 
 	eventName := normalized.Event
 	if e.observationHandler != nil {
@@ -131,6 +138,14 @@ func (e *Engine) getOrCompileSchema(eventName string) (*gojsonschema.Schema, err
 		return val.(*gojsonschema.Schema), nil
 	}
 
+	e.compileMu.Lock()
+	defer e.compileMu.Unlock()
+
+	// Double-check after acquiring lock
+	if val, ok := e.compiledCache.Load(eventName); ok {
+		return val.(*gojsonschema.Schema), nil
+	}
+
 	// Resolve from AST via Contract interface
 	s, err := e.contract.ResolveEventSchema(eventName)
 	if err != nil {
@@ -148,7 +163,12 @@ func (e *Engine) getOrCompileSchema(eventName string) (*gojsonschema.Schema, err
 }
 
 func (e *Engine) validateWithSchema(event *normalization.NormalizedEvent, schema *gojsonschema.Schema) (*Result, error) {
-	data := make(map[string]interface{}, 16)
+	data := validationMapPool.Get().(map[string]interface{})
+	defer func() {
+		clear(data)
+		validationMapPool.Put(data)
+	}()
+
 	for k, v := range event.Properties {
 		data[k] = v
 	}

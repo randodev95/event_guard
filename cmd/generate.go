@@ -11,24 +11,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var targets []string
-var planPath string
-var outputPath string
-
 // NewGenerateCmd initializes the Generate command.
-func NewGenerateCmd() *cobra.Command {
+func NewGenerateCmd(planPath *string) *cobra.Command {
+	var targets []string
+	var outputPath string
+
 	cmd := &cobra.Command{
 		Use:   "generate",
 		Short: "Generate warehouse configurations from the tracking plan",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// 1. Load Plan
-			data, err := os.ReadFile(planPath)
+			plan, err := parser.LoadPlan(*planPath)
 			if err != nil {
-				return fmt.Errorf("failed to read plan: %w", err)
-			}
-			plan, err := parser.ParseYAML(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse plan: %w", err)
+				return fmt.Errorf("failed to load plan: %w", err)
 			}
 
 			// 2. Parallel Generation
@@ -86,7 +81,6 @@ func NewGenerateCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringSliceVarP(&targets, "target", "t", []string{"dbt"}, "Output targets (dbt, sqlmesh, html, mermaid). Can be comma-separated.")
-	cmd.Flags().StringVarP(&planPath, "plan", "p", "canvas.yaml", "Path to tracking plan")
 	cmd.Flags().StringVarP(&outputPath, "output", "o", "", "Output file path or prefix (default: stdout)")
 
 	return cmd

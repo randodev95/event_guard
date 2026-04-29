@@ -1,0 +1,310 @@
+version: "2.0.0"
+namespace: "Production_Ecosystem"
+mixins:
+  Global_Context:
+    description: "Standard context for all events"
+    properties:
+      context.ip: {type: string, required: true}
+      context.library.name: {type: string, required: true}
+      properties.metadata.source: {type: string, required: true}
+events:
+  Login:
+    description: "Auto Login"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Signup:
+    description: "Auto Signup"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Purchase:
+    description: "Auto Purchase"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  View_Product:
+    description: "Auto View_Product"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Add_to_Cart:
+    description: "Auto Add_to_Cart"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Remove_from_Cart:
+    description: "Auto Remove_from_Cart"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Checkout_Started:
+    description: "Auto Checkout_Started"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Checkout_Step_Completed:
+    description: "Auto Checkout_Step_Completed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Payment_Info_Entered:
+    description: "Auto Payment_Info_Entered"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Order_Completed:
+    description: "Auto Order_Completed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Search:
+    description: "Auto Search"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Filter_Applied:
+    description: "Auto Filter_Applied"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Promotion_Clicked:
+    description: "Auto Promotion_Clicked"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Coupon_Applied:
+    description: "Auto Coupon_Applied"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Review_Submitted:
+    description: "Auto Review_Submitted"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Account_Updated:
+    description: "Auto Account_Updated"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Password_Changed:
+    description: "Auto Password_Changed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Profile_Viewed:
+    description: "Auto Profile_Viewed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Friend_Added:
+    description: "Auto Friend_Added"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Message_Sent:
+    description: "Auto Message_Sent"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Notification_Clicked:
+    description: "Auto Notification_Clicked"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Settings_Changed:
+    description: "Auto Settings_Changed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Feedback_Given:
+    description: "Auto Feedback_Given"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Support_Ticket_Created:
+    description: "Auto Support_Ticket_Created"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Subscription_Started:
+    description: "Auto Subscription_Started"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Subscription_Cancelled:
+    description: "Auto Subscription_Cancelled"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Trial_Started:
+    description: "Auto Trial_Started"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Trial_Ended:
+    description: "Auto Trial_Ended"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  App_Installed:
+    description: "Auto App_Installed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  App_Opened:
+    description: "Auto App_Opened"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  App_Updated:
+    description: "Auto App_Updated"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Deep_Link_Clicked:
+    description: "Auto Deep_Link_Clicked"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Push_Notification_Received:
+    description: "Auto Push_Notification_Received"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Feature_Used:
+    description: "Auto Feature_Used"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Tutorial_Started:
+    description: "Auto Tutorial_Started"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Tutorial_Completed:
+    description: "Auto Tutorial_Completed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Level_Up:
+    description: "Auto Level_Up"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Achievement_Unlocked:
+    description: "Auto Achievement_Unlocked"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Invite_Sent:
+    description: "Auto Invite_Sent"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Invite_Accepted:
+    description: "Auto Invite_Accepted"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Content_Shared:
+    description: "Auto Content_Shared"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Content_Saved:
+    description: "Auto Content_Saved"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Content_Deleted:
+    description: "Auto Content_Deleted"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Language_Changed:
+    description: "Auto Language_Changed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Dark_Mode_Toggled:
+    description: "Auto Dark_Mode_Toggled"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Region_Changed:
+    description: "Auto Region_Changed"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Device_Linked:
+    description: "Auto Device_Linked"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Device_Unlinked:
+    description: "Auto Device_Unlinked"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Session_Started:
+    description: "Auto Session_Started"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}
+  Session_Ended:
+    description: "Auto Session_Ended"
+    imports: [Global_Context]
+    properties:
+      properties.price: {type: number}
+      properties.category: {type: string}

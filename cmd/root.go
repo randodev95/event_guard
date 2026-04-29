@@ -11,8 +11,9 @@ import (
 
 // NewRootCmd initializes the base command for EventGuard.
 func NewRootCmd() *cobra.Command {
+	var planPath string
 	rootCmd := &cobra.Command{
-		Use:     "canvas",
+		Use:     "event_guard",
 		Short:   "EventGuard: Local-first telemetry CLI",
 		Version: "0.1.0",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -20,15 +21,17 @@ func NewRootCmd() *cobra.Command {
 		},
 	}
 
+	rootCmd.PersistentFlags().StringVarP(&planPath, "plan", "p", "maps", "Path to tracking plan (directory or file)")
+
 	rootCmd.AddCommand(NewInitCmd())
-	rootCmd.AddCommand(NewDevCmd())
+	rootCmd.AddCommand(NewDevCmd(&planPath))
 	rootCmd.AddCommand(NewDiffCmd())
-	rootCmd.AddCommand(NewImpactCheckCmd())
-	rootCmd.AddCommand(NewGenerateCmd())
+	rootCmd.AddCommand(NewImpactCheckCmd(&planPath))
+	rootCmd.AddCommand(NewGenerateCmd(&planPath))
 	rootCmd.AddCommand(NewValidateCmd())
-	rootCmd.AddCommand(NewProposeCmd())
-	rootCmd.AddCommand(NewServeCmd())
-	rootCmd.AddCommand(NewExportWASMCmd())
+	rootCmd.AddCommand(NewProposeCmd(&planPath))
+	rootCmd.AddCommand(NewServeCmd(&planPath))
+	rootCmd.AddCommand(NewExportWASMCmd(&planPath))
 
 	return rootCmd
 }
@@ -38,7 +41,7 @@ func Execute() error {
 	return NewRootCmd().Execute()
 }
 
-func NewExportWASMCmd() *cobra.Command {
+func NewExportWASMCmd(planPath *string) *cobra.Command {
 	var hashPlan bool
 	cmd := &cobra.Command{
 		Use:   "export-wasm",
@@ -47,25 +50,16 @@ func NewExportWASMCmd() *cobra.Command {
 			cmd.Println("Compiling validator to WASM...")
 
 			// 1. Prepare Plan (Obfuscate if requested)
-			data, err := os.ReadFile(planPath)
+			plan, err := parser.LoadPlan(*planPath)
 			if err != nil {
-				return err
-			}
-			newPlan, err := parser.ParseYAML(data)
-			if err != nil {
-				return err
+				return fmt.Errorf("failed to load plan: %w", err)
 			}
 
 			if hashPlan {
 				cmd.Println(" [SECURITY] Obfuscating plan (hashing names)...")
-				newPlan = newPlan.Obfuscate()
+				_ = plan.Obfuscate()
 			}
 
-			// 2. Write plan to temporary location for WASM build
-			// Note: WASM entry point needs a way to read this. 
-			// For simplicity in this demo, we write to a 'plan.yaml' that the WASM can pick up
-			// or the user can initialize at runtime.
-			
 			buildCmd := exec.Command("go", "build", "-o", "validator.wasm", "web/validator/main.go")
 			buildCmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
 			

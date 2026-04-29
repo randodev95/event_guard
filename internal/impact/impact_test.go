@@ -1,90 +1,65 @@
 package impact
 
 import (
-	"github.com/randodev95/event_guard/internal/storage"
-	"github.com/randodev95/event_guard/pkg/ast"
-	"os"
 	"testing"
+	"github.com/randodev95/event_guard/pkg/ast"
+	"github.com/randodev95/event_guard/internal/storage"
+	"os"
 )
 
-func TestCheckParity_Success(t *testing.T) {
+func TestCheckParity(t *testing.T) {
 	dbPath := "test_impact.db"
+	db, _ := storage.NewSQLiteDB(dbPath)
 	defer os.Remove(dbPath)
 
-	db, err := storage.NewSQLiteDB(dbPath)
-	if err != nil {
-		t.Fatalf("Failed to create SQLite DB: %v", err)
-	}
-	defer db.Close()
-
-	prevSHA := "old-sha"
-	err = db.SaveSnapshot(storage.Snapshot{
-		SHA:       prevSHA,
-		EventName: "Order Completed",
-		Payloads:  []string{`{"event": "Order Completed", "properties": {"total": 100}}`},
+	// 1. Save snapshot
+	sha := "old-sha"
+	db.SaveSnapshot(storage.Snapshot{
+		SHA:       sha,
+		EventName: "Login",
+		Payloads:  []string{`{"event": "Login", "properties": {"user": "alice"}}`},
 	})
-	if err != nil {
-		t.Fatalf("Failed to save snapshot: %v", err)
-	}
 
+	// 2. Test with valid plan
 	plan := &ast.TrackingPlan{
-		Events: map[string]ast.Event{
-			"Order Completed": {
-				Properties: map[string]ast.Property{
-					"total": {Type: "number", Required: true},
+		Taxonomy: ast.Taxonomy{
+			Events: map[string]ast.EventV2{
+				"Login": {
+					Properties: map[string]ast.PropertyV2{
+						"user": {Type: "string"},
+					},
 				},
 			},
 		},
 	}
 
-	breaches, err := CheckParity(db, prevSHA, plan)
+	breaches, err := CheckParity(db, sha, plan)
 	if err != nil {
 		t.Fatalf("CheckParity failed: %v", err)
 	}
-
 	if len(breaches) > 0 {
-		t.Errorf("Expected 0 breaches, got %d: %v", len(breaches), breaches)
-	}
-}
-
-func TestCheckParity_BreakingChange(t *testing.T) {
-	dbPath := "test_impact_fail.db"
-	defer os.Remove(dbPath)
-
-	db, err := storage.NewSQLiteDB(dbPath)
-	if err != nil {
-		t.Fatalf("Failed to create SQLite DB: %v", err)
-	}
-	defer db.Close()
-
-	prevSHA := "old-sha"
-	// Old sample had "total" as a number
-	err = db.SaveSnapshot(storage.Snapshot{
-		SHA:       prevSHA,
-		EventName: "Order Completed",
-		Payloads:  []string{`{"event": "Order Completed", "properties": {"total": 100}}`},
-	})
-	if err != nil {
-		t.Fatalf("Failed to save snapshot: %v", err)
+		t.Errorf("Expected 0 breaches, got %d", len(breaches))
 	}
 
-	// New plan changes "total" to a string
-	plan := &ast.TrackingPlan{
-		Events: map[string]ast.Event{
-			"Order Completed": {
-				Properties: map[string]ast.Property{
-					"total": {Type: "string", Required: true},
+	// 3. Test with breaking change (added a new required property)
+	planBroken := &ast.TrackingPlan{
+		Taxonomy: ast.Taxonomy{
+			Events: map[string]ast.EventV2{
+				"Login": {
+					Properties: map[string]ast.PropertyV2{
+						"user": {Type: "string"},
+						"new_req": {Type: "string", Required: true},
+					},
 				},
 			},
 		},
 	}
 
-	breaches, err := CheckParity(db, prevSHA, plan)
+	breaches, err = CheckParity(db, sha, planBroken)
 	if err != nil {
 		t.Fatalf("CheckParity failed: %v", err)
 	}
-
 	if len(breaches) == 0 {
-		t.Errorf("Expected at least one breach for type mismatch")
+		t.Error("Expected breach for new required property, got none")
 	}
 }

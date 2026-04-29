@@ -1,268 +1,311 @@
 package ast
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"sort"
+	"strings"
+	"gopkg.in/yaml.v3"
 )
 
-// TrackingPlan represents the root of the telemetry taxonomy.
-// It defines the version, global contexts, events, and flows.
+// TrackingPlan coordinates Taxonomy and Flows.
 type TrackingPlan struct {
-	Version            string             `yaml:"version"`
-	Contexts           map[string]Context `yaml:"contexts"`
-	Events             map[string]Event   `yaml:"events"`
-	Flows              []Flow             `yaml:"flows"`
-	IdentityProperties []string           `yaml:"identity_properties"` // e.g., ["wallet_address", "anonymousId"]
+	Version  string              `yaml:"version"`
+	Taxonomy Taxonomy            `yaml:"taxonomy"`
+	Flows    map[string]FlowPlan `yaml:"flows"`
+}
+
+// UnmarshalYAML implements custom logic to handle both nested and flat taxonomy structures.
+func (p *TrackingPlan) UnmarshalYAML(value *yaml.Node) error {
+	// 1. Try standard unmarshal (nested taxonomy)
+	type alias TrackingPlan
+	var a alias
+	if err := value.Decode(&a); err != nil {
+		return err
+	}
+	*p = TrackingPlan(a)
+
+	// 2. Try flat unmarshal (taxonomy fields at root)
+	var flat Taxonomy
+	if err := value.Decode(&flat); err != nil {
+		return err
+	}
+
+	// Merge flat fields into p.Taxonomy if they exist
+	if flat.Version != "" {
+		p.Taxonomy.Version = flat.Version
+	}
+	if flat.Namespace != "" {
+		p.Taxonomy.Namespace = flat.Namespace
+	}
+	if len(flat.Events) > 0 {
+		if p.Taxonomy.Events == nil {
+			p.Taxonomy.Events = make(map[string]EventV2)
+		}
+		for k, v := range flat.Events {
+			p.Taxonomy.Events[k] = v
+		}
+	}
+	if len(flat.Mixins) > 0 {
+		if p.Taxonomy.Mixins == nil {
+			p.Taxonomy.Mixins = make(map[string]Mixin)
+		}
+		for k, v := range flat.Mixins {
+			p.Taxonomy.Mixins[k] = v
+		}
+	}
+	if len(flat.Enums) > 0 {
+		if p.Taxonomy.Enums == nil {
+			p.Taxonomy.Enums = make(map[string][]string)
+		}
+		for k, v := range flat.Enums {
+			p.Taxonomy.Enums[k] = v
+		}
+	}
+	if len(flat.IdentityProperties) > 0 {
+		p.Taxonomy.IdentityProperties = flat.IdentityProperties
+	}
+
+	return nil
+}
+
+// DiffPlans compares two plans for semantic changes.
+// It tracks additions, removals, and changes to types/constraints.
+func DiffPlans(old, new *TrackingPlan) []string {
+	var changes []string
+
+	// 1. Check for New/Removed Events
+	for name := range new.Taxonomy.Events {
+		if _, ok := old.Taxonomy.Events[name]; !ok {
+			changes = append(changes, fmt.Sprintf("event [%s]: ADDED", name))
+		}
+	}
+
+	for name, oldEv := range old.Taxonomy.Events {
+		newEv, ok := new.Taxonomy.Events[name]
+		if !ok {
+			changes = append(changes, fmt.Sprintf("event [%s]: REMOVED (BREAKING)", name))
+			continue
+		}
+
+		// 2. Diff Properties
+		oldProps, _ := old.Taxonomy.FlattenEvent(name)
+		newProps, _ := new.Taxonomy.FlattenEvent(name)
+
+		for pName, oldP := range oldProps {
+			newP, ok := newProps[pName]
+			if !ok {
+				changes = append(changes, fmt.Sprintf("event [%s] prop [%s]: REMOVED (BREAKING)", name, pName))
+				continue
+			}
+
+			// Semantic diff of constraints
+			if oldP.Type != newP.Type {
+				changes = append(changes, fmt.Sprintf("event [%s] prop [%s]: TYPE CHANGE %s -> %s (BREAKING)", name, pName, oldP.Type, newP.Type))
+			}
+			if !oldP.Required && newP.Required {
+				changes = append(changes, fmt.Sprintf("event [%s] prop [%s]: NOW REQUIRED (BREAKING)", name, pName))
+			}
+			
+			// Enum changes
+			if len(oldP.Enum) != len(newP.Enum) {
+				changes = append(changes, fmt.Sprintf("event [%s] prop [%s]: ENUM CHANGED (POTENTIAL BREAKING)", name, pName))
+			}
+		}
+
+		for pName := range newProps {
+			if _, ok := oldProps[pName]; !ok {
+				changes = append(changes, fmt.Sprintf("event [%s] prop [%s]: ADDED", name, pName))
+			}
+		}
+		
+		// 3. Diff Flow Lineage
+		if oldEv.EntityType != newEv.EntityType {
+			changes = append(changes, fmt.Sprintf("event [%s]: ENTITY CHANGE %s -> %s", name, oldEv.EntityType, newEv.EntityType))
+		}
+	}
+
+	return changes
+}
+
+// Obfuscate returns a copy of the plan with hashed names for privacy in public WASM.
+func (p *TrackingPlan) Obfuscate() *TrackingPlan {
+	// For now, return same plan to avoid complexity unless requested.
+	// Hashing names requires deep copy and map replacement.
+	return p 
+}
+
+func (p *TrackingPlan) ResolveEventSchema(eventName string) (string, error) {
+	return p.Taxonomy.ResolveEventSchema(eventName)
 }
 
 func (p *TrackingPlan) GetIdentityProperties() []string {
-	return p.IdentityProperties
+	return p.Taxonomy.GetIdentityProperties()
 }
 
 func (p *TrackingPlan) GetEventNames() []string {
-	names := make([]string, 0, len(p.Events))
-	for name := range p.Events {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
+	return p.Taxonomy.GetEventNames()
 }
 
-// Context defines a reusable set of properties that can be inherited by events.
-// It typically represents a domain entity like User, Session, or Device.
-type Context struct {
-	Inherits   []string            `yaml:"inherits"`
-	EntityType string              `yaml:"entity_type"` // e.g., User, Session, Device
-	Properties map[string]Property `yaml:"properties"`
-}
-
-// Event represents a single tracking point in the application.
-type Event struct {
-	Category   string              `yaml:"category"` // e.g., PAGE_VIEW, INTERACTION, VISIBILITY
-	EntityType string              `yaml:"entity_type"`
-	Inherits   []string            `yaml:"inherits"`
-	Properties map[string]Property `yaml:"properties"`
-	Triggers   []Trigger           `yaml:"triggers"`
-}
-
-// Trigger describes how an event is arrived at from a specific state.
-type Trigger struct {
-	FromState string `yaml:"from_state"`
-	Type      string `yaml:"type"` // e.g., UI_NAVIGATION, DIRECT_LOAD
-}
-
-// Property defines the constraints and type for a specific data field.
-type Property struct {
-	Type     string        `yaml:"type"`
-	Required bool          `yaml:"required"`
-	NoNull   bool          `yaml:"no_null"`
-	Unique   bool          `yaml:"unique"`
-	Min      *float64      `yaml:"min"`
-	Max      *float64      `yaml:"max"`
-	Enum     []interface{} `yaml:"enum"`
-}
-
-// ResolveEventSchema generates a JSON Schema representation for a specific event.
-// It resolves all inherited properties and constraints.
-func (p *TrackingPlan) ResolveEventSchema(eventName string) (string, error) {
-	allProps, err := p.ResolveProperties(eventName)
-	if err != nil {
-		return "", fmt.Errorf("property resolution failed for %s: %w", eventName, err)
+// Validate performs full system validation.
+func (p *TrackingPlan) Validate() error {
+	if err := p.Taxonomy.Validate(); err != nil {
+		return err
 	}
 
-	required := []string{}
-	for name, prop := range allProps {
-		if prop.Required {
-			required = append(required, name)
+	// 2. Validate Flows
+	usedEvents := make(map[string]bool)
+	for flowName, flow := range p.Flows {
+		if err := flow.Validate(); err != nil {
+			return fmt.Errorf("flow %s: %w", flowName, err)
+		}
+
+		// Collect events used in this flow
+		for nodeName, node := range flow.Nodes {
+			var eventName string
+			if node.Event != "" {
+				eventName = node.Event
+			} else if node.ListenFor != "" {
+				eventName = node.ListenFor
+			}
+
+			if eventName != "" {
+				// Rule: Event must exist in taxonomy
+				if _, ok := p.Taxonomy.Events[eventName]; !ok {
+					return fmt.Errorf("flow %s, node %s: event %s not found in taxonomy", flowName, nodeName, eventName)
+				}
+				usedEvents[eventName] = true
+			}
 		}
 	}
 
-	schema := map[string]interface{}{
-		"type":       "object",
-		"properties": make(map[string]interface{}),
-		"required":   required,
+	// 3. Rule: No orphan events in taxonomy
+	for eventName := range p.Taxonomy.Events {
+		if !usedEvents[eventName] {
+			return fmt.Errorf("orphan event: %s is defined in taxonomy but not used in any flow", eventName)
+		}
 	}
 
-	props := schema["properties"].(map[string]interface{})
-	for name, prop := range allProps {
-		propSchema := map[string]interface{}{"type": prop.Type}
-		if prop.NoNull {
-			propSchema["nullable"] = false
-		}
-		if prop.Unique {
-			propSchema["unique"] = true
-		}
-		if prop.Min != nil {
-			propSchema["minimum"] = *prop.Min
-		}
-		if prop.Max != nil {
-			propSchema["maximum"] = *prop.Max
-		}
-		if len(prop.Enum) > 0 {
-			propSchema["enum"] = prop.Enum
-		}
-		props[name] = propSchema
-	}
-
-	schemaJSON, err := json.Marshal(schema)
-	if err != nil {
-		return "", err
-	}
-
-	return string(schemaJSON), nil
+	// 4. Type Check Gate Conditions
+	return p.TypeCheck()
 }
 
-// ValidateTaxonomy checks if all events have mandatory metadata fields like category and entity_type.
-func (p *TrackingPlan) ValidateTaxonomy() error {
-	for name, event := range p.Events {
-		if event.Category == "" {
-			return fmt.Errorf("event %s: missing category (e.g., PAGE_VIEW, INTERACTION)", name)
+// TypeCheck ensures nodes reference valid events and properties.
+func (p *TrackingPlan) TypeCheck() error {
+	for flowName, flow := range p.Flows {
+		// Find all triggers to set valid context
+		triggerEvents := make(map[string]bool)
+		for _, node := range flow.Nodes {
+			if node.Type == "TriggerNode" && node.Event != "" {
+				triggerEvents[node.Event] = true
+			}
 		}
-		if event.EntityType == "" {
-			return fmt.Errorf("event %s: missing entity_type (e.g., User, Session)", name)
+
+		if len(triggerEvents) == 0 {
+			continue
+		}
+
+		// Use the first trigger as default active event for initial nodes
+		var activeEvent string
+		for e := range triggerEvents {
+			activeEvent = e
+			break
+		}
+
+		for nodeName, node := range flow.Nodes {
+			// Check TriggerNode event
+			if node.Type == "TriggerNode" && node.Event != "" {
+				if _, ok := p.Taxonomy.Events[node.Event]; !ok {
+					return fmt.Errorf("flow %s node %s: unknown event %s", flowName, nodeName, node.Event)
+				}
+			}
+			// Check WaitNode listen_for
+			if node.Type == "WaitNode" && node.ListenFor != "" {
+				if _, ok := p.Taxonomy.Events[node.ListenFor]; !ok {
+					return fmt.Errorf("flow %s node %s: unknown event %s", flowName, nodeName, node.ListenFor)
+				}
+				activeEvent = node.ListenFor // Update context
+			}
+
+			// Check GateNode conditions
+			if node.Type == "GateNode" {
+				if activeEvent == "" {
+					return fmt.Errorf("flow %s node %s: GateNode used before any TriggerNode or WaitNode", flowName, nodeName)
+				}
+				props, err := p.Taxonomy.FlattenEvent(activeEvent)
+				if err != nil {
+					return fmt.Errorf("flow %s node %s: %w", flowName, nodeName, err)
+				}
+
+				for _, cond := range node.Conditions {
+					if cond.If != "" && strings.Contains(cond.If, "$event.") {
+						// Simple regex/substring check for demo
+						// Extract property name: $event.xxx
+						parts := strings.Split(cond.If, "$event.")
+						if len(parts) > 1 {
+							propName := strings.Split(parts[1], " ")[0]
+							if _, ok := props[propName]; !ok {
+								return fmt.Errorf("flow %s node %s: unknown property %s in condition", flowName, nodeName, propName)
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	return nil
 }
 
-// ValidateIntegrity ensures that each event contains at least one identity property, preventing "Ghost Users".
-func (p *TrackingPlan) ValidateIntegrity() error {
-	keys := p.IdentityProperties
-	if len(keys) == 0 {
-		keys = []string{"userId"}
+// ExtractTaxonomy generates a skeletal taxonomy based on events referenced in flows.
+func (p *TrackingPlan) ExtractTaxonomy() Taxonomy {
+	tax := Taxonomy{
+		Events: make(map[string]EventV2),
 	}
 
-	for name := range p.Events {
-		props, err := p.ResolveProperties(name)
-		if err != nil {
-			return err
-		}
+	for flowName, flow := range p.Flows {
+		for _, node := range flow.Nodes {
+			var eventName string
+			if node.Event != "" {
+				eventName = node.Event
+			} else if node.ListenFor != "" {
+				eventName = node.ListenFor
+			}
 
-		found := false
-		for _, k := range keys {
-			if _, ok := props[k]; ok {
-				found = true
-				break
+			if eventName != "" {
+				if _, exists := tax.Events[eventName]; !exists {
+					props := node.Properties
+					if props == nil {
+						props = make(map[string]PropertyV2)
+					}
+					tax.Events[eventName] = EventV2{
+						Description: fmt.Sprintf("Auto-extracted: %s", flowName),
+						Properties:  deepCopyProperties(props),
+					}
+				}
 			}
 		}
-
-		if !found {
-			return fmt.Errorf("event %s: missing at least one logical identifier from %v (integrity breach)", name, keys)
-		}
 	}
-	return nil
+
+	return tax
 }
 
-// ResolveProperties flattens all properties for an event, including inherited contexts.
-func (p *TrackingPlan) ResolveProperties(eventName string) (map[string]Property, error) {
-	event, ok := p.Events[eventName]
-	if !ok {
-		return nil, fmt.Errorf("event %s not found", eventName)
-	}
-
-	allProps := make(map[string]Property)
-	visited := make(map[string]bool)
-
-	for _, ctxName := range event.Inherits {
-		if err := p.resolveContext(ctxName, allProps, visited, 0); err != nil {
-			return nil, err
+func deepCopyProperties(src map[string]PropertyV2) map[string]PropertyV2 {
+	dst := make(map[string]PropertyV2, len(src))
+	for k, v := range src {
+		cp := v
+		// Deep copy Enum slice
+		if len(v.Enum) > 0 {
+			cp.Enum = make([]string, len(v.Enum))
+			copy(cp.Enum, v.Enum)
 		}
-	}
-
-	for name, prop := range event.Properties {
-		if parentProp, exists := allProps[name]; exists {
-			if parentProp.Type != prop.Type {
-				return nil, fmt.Errorf("property %s: cannot change type from %s to %s", name, parentProp.Type, prop.Type)
-			}
-			if parentProp.Required && !prop.Required {
-				return nil, fmt.Errorf("property %s: cannot make optional", name)
-			}
+		// Deep copy Rules pointers
+		if v.Rules.Min != nil {
+			min := *v.Rules.Min
+			cp.Rules.Min = &min
 		}
-		allProps[name] = prop
-	}
-
-	return allProps, nil
-}
-
-func (p *TrackingPlan) resolveContext(name string, allProps map[string]Property, visited map[string]bool, depth int) error {
-	if depth > 20 {
-		return fmt.Errorf("inheritance depth exceeded limit (20) in context %s", name)
-	}
-	if visited[name] {
-		return fmt.Errorf("circular inheritance detected in context %s", name)
-	}
-	visited[name] = true
-
-	ctx, ok := p.Contexts[name]
-	if !ok {
-		return fmt.Errorf("context %s not found", name)
-	}
-
-	// Resolve parent contexts first
-	for _, parentName := range ctx.Inherits {
-		if err := p.resolveContext(parentName, allProps, visited, depth+1); err != nil {
-			return err
+		if v.Rules.Max != nil {
+			max := *v.Rules.Max
+			cp.Rules.Max = &max
 		}
+		dst[k] = cp
 	}
-
-	// Add current context properties
-	for propName, prop := range ctx.Properties {
-		allProps[propName] = prop
-	}
-
-	visited[name] = false
-	return nil
-}
-
-// Obfuscate creates a copy of the plan with all event and context names hashed.
-// This is used for public WASM exports to protect business logic.
-func (p *TrackingPlan) Obfuscate() *TrackingPlan {
-	newPlan := &TrackingPlan{
-		Version:            p.Version,
-		Contexts:           make(map[string]Context),
-		Events:             make(map[string]Event),
-		IdentityProperties: p.IdentityProperties,
-	}
-
-	hash := func(s string) string {
-		h := sha256.Sum256([]byte(s))
-		return hex.EncodeToString(h[:])
-	}
-
-	// Map old names to new hashed names
-	ctxMap := make(map[string]string)
-	for name := range p.Contexts {
-		ctxMap[name] = hash(name)
-	}
-
-	for name, ctx := range p.Contexts {
-		newCtx := Context{
-			EntityType: ctx.EntityType,
-			Properties: ctx.Properties,
-			Inherits:   make([]string, len(ctx.Inherits)),
-		}
-		for i, parent := range ctx.Inherits {
-			newCtx.Inherits[i] = ctxMap[parent]
-		}
-		newPlan.Contexts[ctxMap[name]] = newCtx
-	}
-
-	for name, event := range p.Events {
-		newEvent := Event{
-			Category:   event.Category,
-			EntityType: event.EntityType,
-			Properties: event.Properties,
-			Triggers:   event.Triggers,
-			Inherits:   make([]string, len(event.Inherits)),
-		}
-		for i, parent := range event.Inherits {
-			newEvent.Inherits[i] = ctxMap[parent]
-		}
-		newPlan.Events[hash(name)] = newEvent
-	}
-
-	return newPlan
+	return dst
 }

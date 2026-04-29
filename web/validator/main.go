@@ -2,48 +2,36 @@
 package main
 
 import (
-	"encoding/json"
 	"syscall/js"
 
-	"github.com/randodev95/event_guard/pkg/parser"
-	"github.com/randodev95/event_guard/pkg/validator"
+	"github.com/randodev95/event_guard/internal/wasmcore"
 )
 
-var engine *validator.Engine
+var bridge = wasmcore.NewBridge()
 
 func initEngine(this js.Value, args []js.Value) interface{} {
 	if len(args) < 1 {
 		return "missing plan yaml"
 	}
-	yamlStr := args[0].String()
-	plan, err := parser.ParseYAML([]byte(yamlStr))
+	res, err := bridge.HandleInit(args[0].String())
 	if err != nil {
 		return err.Error()
 	}
-	engine = validator.NewEngine(plan)
-	engine.Warmup()
-	return "initialized"
+	return res
 }
 
 func validate(this js.Value, args []js.Value) interface{} {
-	if engine == nil {
-		return "engine not initialized"
-	}
 	if len(args) < 1 {
 		return "missing payload"
 	}
-	payload := args[0].String()
-	res, err := engine.ValidateJSON([]byte(payload))
+	res, err := bridge.HandleValidate(args[0].String())
 	if err != nil {
 		return err.Error()
 	}
-	
-	jsonRes, _ := json.Marshal(res)
-	return string(jsonRes)
+	return res
 }
 
 func main() {
-	// Guard against re-initialization if already set in global JS context
 	if js.Global().Get("egInit").IsUndefined() {
 		js.Global().Set("egInit", js.FuncOf(initEngine))
 	}
@@ -51,6 +39,5 @@ func main() {
 		js.Global().Set("egValidate", js.FuncOf(validate))
 	}
 
-	// Keep alive for browser runtime
 	select {}
 }

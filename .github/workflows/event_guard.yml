@@ -3,7 +3,7 @@ name: EventGuard Telemetry Guard
 on:
   pull_request:
     paths:
-      - 'canvas.yaml'
+      - 'maps/**'
       - '**.go'
 
 jobs:
@@ -18,11 +18,15 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
 
       - name: Build EventGuard
-        run: go
+        run: go build -o event_guard main.go
+
+      - name: Run Tests
+        run: go test ./...
 
       - name: Run Impact Check
         run: |
-          ./canvas impact-check --prev-sha ${{ github.event.pull_request.base.sha }}
+          chmod +x ./event_guard
+          ./event_guard impact-check --prev-sha ${{ github.event.pull_request.base.sha }}
