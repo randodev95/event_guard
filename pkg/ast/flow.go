@@ -6,9 +6,10 @@ import "fmt"
 // Each Flow is a directed graph of steps (states) that map to events.
 // Analysts can use the flow ID to filter downstream data.
 type Flow struct {
-	ID    string     `yaml:"id"`
-	Name  string     `yaml:"name"`
-	Steps []FlowStep `yaml:"steps"`
+	ID            string     `yaml:"id"`
+	Name          string     `yaml:"name"`
+	Steps         []FlowStep `yaml:"steps"`
+	UpstreamFlows []string   `yaml:"upstream_flows"` // Explicit interlinking
 }
 
 // FlowStep represents a single point in a user journey, mapping a state to an event.

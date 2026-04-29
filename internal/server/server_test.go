@@ -23,6 +23,7 @@ func TestHandleEvent_Integration(t *testing.T) {
 		Plan:    plan,
 		Updates: nil,
 	}
+	srv.UpdatePlan(plan)
 
 	t.Run("Valid Event", func(t *testing.T) {
 		payload := []byte(`{"event": "Order Completed", "userId": "user1", "properties": {"total": 100.50}}`)

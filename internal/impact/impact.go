@@ -34,7 +34,8 @@ func CheckParity(db *storage.DB, prevSHA string, plan *ast.TrackingPlan) ([]Brea
 		}
 
 		for _, payload := range snapshot.Payloads {
-			norm, err := normalization.Normalize([]byte(payload))
+			mapper := normalization.NewDefaultMapper()
+			norm, err := mapper.Map([]byte(payload))
 			if err != nil {
 				return nil, err
 			}

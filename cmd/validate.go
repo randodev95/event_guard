@@ -37,7 +37,8 @@ func NewValidateCmd() *cobra.Command {
 			}
 
 			// 3. Normalize
-			normalized, err := normalization.Normalize(payload)
+			mapper := normalization.NewDefaultMapper()
+			normalized, err := mapper.Map(payload)
 			if err != nil {
 				return fmt.Errorf("normalization failed: %w", err)
 			}

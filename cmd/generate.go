@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/randodev95/event_guard/internal/generator"
+	"github.com/randodev95/event_guard/pkg/ast"
 	"github.com/randodev95/event_guard/pkg/parser"
 	"github.com/spf13/cobra"
 )
@@ -39,23 +40,7 @@ func NewGenerateCmd() *cobra.Command {
 				go func(targetType string) {
 					defer wg.Done()
 
-					var output string
-					var genErr error
-
-					switch targetType {
-					case "dbt":
-						output, genErr = generator.GenerateDBT(plan)
-					case "sqlmesh":
-						output, genErr = generator.GenerateSQLMesh(plan)
-					case "html":
-						output, genErr = generator.GenerateHTML(plan)
-					case "mermaid":
-						output, genErr = generator.GenerateMermaid(plan)
-					default:
-						errChan <- fmt.Errorf("unsupported target: %s", targetType)
-						return
-					}
-
+					output, genErr := runGenerator(targetType, plan)
 					if genErr != nil {
 						errChan <- fmt.Errorf("target %s failed: %w", targetType, genErr)
 						return
@@ -105,4 +90,19 @@ func NewGenerateCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&outputPath, "output", "o", "", "Output file path or prefix (default: stdout)")
 
 	return cmd
+}
+
+func runGenerator(targetType string, plan *ast.TrackingPlan) (string, error) {
+	switch targetType {
+	case "dbt":
+		return generator.GenerateDBT(plan)
+	case "sqlmesh":
+		return generator.GenerateSQLMesh(plan)
+	case "html":
+		return generator.GenerateHTML(plan)
+	case "mermaid":
+		return generator.GenerateMermaid(plan)
+	default:
+		return "", fmt.Errorf("unsupported target: %s", targetType)
+	}
 }

@@ -12,12 +12,6 @@ type NormalizedEvent struct {
 	Properties map[string]interface{} `json:"properties"`
 }
 
-// Normalize is a convenience wrapper for backward compatibility.
-// It uses the default mapper to transform raw JSON.
-func Normalize(data []byte) (*NormalizedEvent, error) {
-	return NewDefaultMapper().Map(data)
-}
-
 // Mapper handles the mapping from raw JSON to the canonical NormalizedEvent.
 type Mapper struct {
 	// IdentityPaths defines where to look for identity properties.
@@ -37,7 +31,6 @@ func NewDefaultMapper() *Mapper {
 }
 
 // Map transforms raw JSON into a canonical NormalizedEvent.
-// It resolves casing and nesting issues by following defined search paths.
 func (m *Mapper) Map(data []byte) (*NormalizedEvent, error) {
 	res := gjson.ParseBytes(data)
 
@@ -56,15 +49,27 @@ func (m *Mapper) Map(data []byte) (*NormalizedEvent, error) {
 		identity["userId"] = identity["anonymousId"]
 	}
 
-	// Properties extraction: fallback from "properties" to root if missing
+	// 3. Properties extraction with Deep Flattening
 	properties := make(map[string]interface{})
-	propsRes := res.Get("properties")
-	if propsRes.Exists() && propsRes.IsObject() {
-		properties = propsRes.Value().(map[string]interface{})
-	} else {
-		// Fallback: If no "properties" block, we might take the root but exclude standard keys
-		// However, for strict FAANG logic, we usually expect a clear separation.
-		// For now, let's keep it safe.
+	
+	// Flatten "properties" block
+	if propsRes := res.Get("properties"); propsRes.Exists() && propsRes.IsObject() {
+		val := propsRes.Value()
+		if m, ok := val.(map[string]interface{}); ok {
+			for k, v := range Flatten(m, "", 0) {
+				properties[k] = v
+			}
+		}
+	}
+	
+	// Flatten "context" block (Standard in Segment/Rudderstack)
+	if ctxRes := res.Get("context"); ctxRes.Exists() && ctxRes.IsObject() {
+		val := ctxRes.Value()
+		if m, ok := val.(map[string]interface{}); ok {
+			for k, v := range Flatten(m, "context", 0) {
+				properties[k] = v
+			}
+		}
 	}
 
 	return &NormalizedEvent{
@@ -83,11 +88,12 @@ func (m *Mapper) firstPath(res gjson.Result, paths []string) string {
 	return ""
 }
 
-// Flatten takes a nested map and flattens it into dot-notation.
-// e.g. {"a": {"b": 1}} -> {"a.b": 1}
-// This makes validation against complex structures much simpler.
-func Flatten(m map[string]interface{}, prefix string) map[string]interface{} {
+// Flatten flattens a nested map into dot-notation (e.g. {"a": {"b": 1}} -> {"a.b": 1}).
+func Flatten(m map[string]interface{}, prefix string, depth int) map[string]interface{} {
 	out := make(map[string]interface{})
+	if depth > 10 {
+		return out // Stop at 10 levels deep to prevent stack overflow
+	}
 	for k, v := range m {
 		key := k
 		if prefix != "" {
@@ -95,7 +101,7 @@ func Flatten(m map[string]interface{}, prefix string) map[string]interface{} {
 		}
 
 		if inner, ok := v.(map[string]interface{}); ok {
-			for ik, iv := range Flatten(inner, key) {
+			for ik, iv := range Flatten(inner, key, depth+1) {
 				out[ik] = iv
 			}
 		} else {

@@ -1,92 +1,114 @@
-# EventGuard: Lido Extreme Protocol Blueprint
-# Stateful tracking for LST, LRT, and Vaults with complex navigation
-
-identity_properties: ["wallet_address", "anonymousId"]
+version: "2.1.0"
+identity_properties: ["userId", "anonymousId"]
 
 contexts:
-  Anonymous_Context:
-    entity_type: "Visitor"
+  Global:
     properties:
-      anonymousId: { type: string, required: true }
-      userAgent: { type: string }
+      library_name: {type: string, required: true}
+      library_version: {type: string, required: true}
+      session_id: {type: string, required: true}
 
-  Wallet_Context:
-    entity_type: "Wallet"
+  Browser:
+    inherits: ["Global"]
     properties:
-      wallet_address: { type: string, required: true, no_null: true }
-      trace_id: { type: string, required: true } # <-- BREAKING CHANGE
-      wallet_type: { type: string, enum: ["Metamask", "WalletConnect", "Ledger", "Coinbase"] }
-      chain_id: { type: integer, required: true }
+      "context.browser.user_agent": {type: string, required: true}
+      "context.browser.viewport_width": {type: number, required: true}
+      "context.browser.viewport_height": {type: number, required: true}
+      "context.browser.language": {type: string}
 
-  Product_Context:
-    entity_type: "Financial_Product"
+  Navigation:
     properties:
-      product_type: { type: string, enum: ["LST", "LRT", "Vault"] }
-      product_name: { type: string, enum: ["stETH", "wstETH", "stMATIC", "Lido-Aave Vault", "EtherFi LRT"] }
+      anonymousId: {type: string, required: true}
+      "context.page.url": {type: string, required: true}
+      "context.page.path": {type: string, required: true}
+      "context.page.referrer": {type: string}
+      "context.page.title": {type: string}
+      "context.page.trigger": 
+        type: string
+        required: true
+        enum: ["click", "back_button", "forward_button", "deep_link", "reload"]
+
+  Campaign:
+    properties:
+      "context.campaign.source": {type: string}
+      "context.campaign.medium": {type: string}
+      "context.campaign.name": {type: string}
+      "context.campaign.term": {type: string}
+      "context.campaign.content": {type: string}
+
+  Experiment:
+    properties:
+      "context.experiment.id": {type: string}
+      "context.experiment.variant": {type: string}
+      "context.experiment.is_control": {type: boolean}
 
 events:
-  "Legal Terms Accepted":
+  "Page Viewed":
+    category: "NAVIGATION"
+    entity_type: "Page"
+    inherits: ["Browser", "Navigation", "Campaign"]
+    properties:
+      userId: {type: string}
+      anonymousId: {type: string, required: true}
+
+  "Element Clicked":
     category: "INTERACTION"
-    entity_type: "Legal"
-    inherits: ["Anonymous_Context"]
+    entity_type: "UIElement"
+    inherits: ["Browser", "Navigation"]
     properties:
-      version: { type: string, required: true }
+      element_id: {type: string}
+      element_text: {type: string}
+      element_type: {type: string, required: true, enum: ["button", "link", "cta", "icon"]}
+      target_url: {type: string}
 
-  "Product Selected":
-    category: "INTERACTION"
-    entity_type: "Discovery"
-    inherits: ["Anonymous_Context"]
+  "Form Submitted":
+    category: "CONVERSION"
+    entity_type: "Form"
+    inherits: ["Browser", "Navigation"]
     properties:
-      selection_method: { type: string, enum: ["dropdown", "search", "hero_cta"] }
-      product_name: { type: string, required: true }
+      form_id: {type: string, required: true}
+      form_name: {type: string}
+      is_success: {type: boolean, required: true}
+      error_message: {type: string}
+      field_count: {type: number}
 
-  "Wallet Connected":
-    category: "STATE_CHANGE"
-    entity_type: "Wallet"
-    inherits: ["Anonymous_Context", "Wallet_Context"]
+  "Deep Link Opened":
+    category: "ACQUISITION"
+    entity_type: "App"
+    inherits: ["Browser", "Navigation", "Campaign"]
     properties:
-      connection_method: { type: string }
+      original_url: {type: string, required: true}
+      protocol: {type: string, required: true, enum: ["http", "https", "custom"]}
+      is_deferred: {type: boolean}
 
-  "Staking Amount Entered":
-    category: "INTERACTION"
-    entity_type: "Stake_Panel"
-    inherits: ["Wallet_Context", "Product_Context"]
+  "Order Completed":
+    category: "REVENUE"
+    entity_type: "Order"
+    inherits: ["Browser", "Navigation", "Campaign"]
     properties:
-      amount_eth: { type: number, min: 0.0001 }
+      order_id: {type: string, required: true}
+      total: {type: number, required: true}
+      revenue: {type: number, required: true}
+      currency: {type: string, required: true, enum: ["USD", "EUR", "GBP"]}
+      shipping: {type: number}
+      tax: {type: number}
+      coupon: {type: string}
+      "products.count": {type: number, required: true}
 
-  "Transaction Initiated":
-    category: "TRANSACTION"
-    entity_type: "Blockchain"
-    inherits: ["Wallet_Context", "Product_Context"]
+  "A/B Test Assigned":
+    category: "GROWTH"
+    entity_type: "Experiment"
+    inherits: ["Browser", "Navigation", "Experiment"]
     properties:
-      tx_type: { type: string, enum: ["stake", "unstake", "wrap", "unwrap"] }
+      experiment_name: {type: string, required: true}
+      variant_name: {type: string, required: true}
 
-flows:
-  - id: "deep_staking_journey"
-    name: "Cross-Product Staking Flow"
-    steps:
-      - state: "Landing"
-        event: "Legal Terms Accepted"
-        triggers: ["DIRECT_LOAD"]
-      - state: "Landing"
-        event: "Product Selected"
-        triggers: ["UI_NAVIGATION", "UI_BACK"] # Supports going back from product page
-      - state: "Product_Page"
-        event: "Wallet Connected"
-        triggers: ["UI_NAVIGATION", "BROWSER_BACK"] # Supports browser refresh/back
-      - state: "Stake_Panel"
-        event: "Staking Amount Entered"
-        triggers: ["UI_NAVIGATION"]
-      - state: "Stake_Panel"
-        event: "Transaction Initiated"
-        triggers: ["UI_NAVIGATION"]
-
-  - id: "vault_discovery_path"
-    name: "Vault Entry Path"
-    steps:
-      - state: "Vault_List"
-        event: "Product Selected"
-        triggers: ["UI_NAVIGATION"]
-      - state: "Vault_Details"
-        event: "Product Selected" # Selecting a different vault
-        triggers: ["UI_NAVIGATION", "UI_BACK"]
+  "Error Occurred":
+    category: "TECHNICAL"
+    entity_type: "Application"
+    inherits: ["Browser", "Navigation"]
+    properties:
+      error_code: {type: string, required: true}
+      message: {type: string, required: true}
+      severity: {type: string, enum: ["info", "warning", "critical"]}
+      stack_trace: {type: string}

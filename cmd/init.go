@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/randodev95/event_guard/internal/storage"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // NewInitCmd initializes the Init command.
@@ -15,6 +18,8 @@ func NewInitCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// 1. Create canvas.yaml
 			defaultYAML := `
+identity_properties: ["userId"]
+
 contexts:
   Universal_User_Context:
     entity_type: "User"
@@ -22,12 +27,28 @@ contexts:
       userId: { type: string, required: true }
 
 events:
-  "Order Completed":
+  "Login Started":
     category: "INTERACTION"
+    entity_type: "User"
+    inherits: ["Universal_User_Context"]
+    triggers:
+      - from_state: "Landing"
+        type: "DIRECT_LOAD"
+
+  "Order Completed":
+    category: "TRANSACTION"
     entity_type: "Transaction"
     inherits: ["Universal_User_Context"]
     properties:
       total: { type: number, required: true }
+
+flows:
+  - id: "onboarding_flow"
+    name: "User Onboarding"
+    steps:
+      - state: "Landing"
+        event: "Login Started"
+        triggers: ["DIRECT_LOAD"]
 `
 			if err := os.WriteFile("canvas.yaml", []byte(defaultYAML), 0644); err != nil {
 				return err
@@ -68,7 +89,56 @@ jobs:
 				return err
 			}
 
-			cmd.Println("Initialized EventGuard project with GitHub Action.")
+			// 4. Create .gitignore
+			gitignore := ".canvas/\ncanvas\nevent_guard\n"
+			if err := os.WriteFile(".gitignore", []byte(gitignore), 0644); err != nil {
+				return err
+			}
+
+			// 5. Create Project README
+			projectREADME := `# Tracking Plan: EventGuard
+This repository contains the deterministic tracking plan for our telemetry pipeline.
+
+## Usage
+- **Propose changes**: ` + "`" + `event_guard propose -m "message"` + "`" + `
+- **Validate local data**: ` + "`" + `event_guard validate payload.json` + "`" + `
+- **Explore flows**: ` + "`" + `event_guard dev` + "`" + `
+`
+			if err := os.WriteFile("README.md", []byte(projectREADME), 0644); err != nil {
+				return err
+			}
+
+			// 6. Initialize Git and Genesis Commit
+			repo, err := git.PlainInit(".", false)
+			if err != nil {
+				if err == git.ErrRepositoryAlreadyExists {
+					cmd.Println("Git repository already exists, skipping initialization.")
+				} else {
+					return err
+				}
+			} else {
+				w, _ := repo.Worktree()
+				w.Add("canvas.yaml")
+				w.Add(".gitignore")
+				w.Add("README.md")
+				w.Add(".github/workflows/event_guard.yml")
+
+				sig := &object.Signature{
+					Name:  "EventGuard Bot",
+					Email: "bot@eventguard.io",
+					When:  time.Now(),
+				}
+				
+				hash, err := w.Commit("chore: genesis commit (event_guard init)", &git.CommitOptions{
+					Author: sig,
+				})
+				if err != nil {
+					return err
+				}
+				cmd.Printf("Created genesis commit on [main]: %s\n", hash.String())
+			}
+
+			cmd.Println("Successfully initialized EventGuard project.")
 			return nil
 		},
 	}

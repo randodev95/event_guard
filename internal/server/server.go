@@ -8,15 +8,27 @@ import (
 
 	"github.com/randodev95/event_guard/internal/tui"
 	"github.com/randodev95/event_guard/pkg/ast"
-	"github.com/randodev95/event_guard/pkg/normalization"
 	"github.com/randodev95/event_guard/pkg/validator"
+	"sync"
 )
 
 // Server represents the development mock server that receives and validates live events.
 type Server struct {
+	mu      sync.RWMutex
 	Plan    *ast.TrackingPlan
+	Engine  *validator.Engine
+	DLQ     chan []byte // Dead Letter Queue for failed events
 	Updates chan tui.EventMsg
 	clients map[chan tui.EventMsg]bool
+}
+
+// UpdatePlan reloads the validation engine with a new tracking plan.
+func (s *Server) UpdatePlan(plan *ast.TrackingPlan) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Plan = plan
+	s.Engine = validator.NewEngine(plan)
+	s.Engine.Warmup()
 }
 
 // HandleEvents streams live validation events to clients via SSE.
@@ -50,7 +62,7 @@ func (s *Server) HandlePlan(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s.Plan)
 }
 
-// HandleEvent receives a single event, validates it, and streams the result to TUI and SSE clients.
+// HandleEvent receives a single event, validates it, and streams the result.
 func (s *Server) HandleEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -63,44 +75,50 @@ func (s *Server) HandleEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Normalize
-	normalized, err := normalization.Normalize(body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	s.mu.RLock()
+	engine := s.Engine
+	s.mu.RUnlock()
+
+	if engine == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
 
-	// 2. Resolve Schema
-	schema, err := s.Plan.ResolveEventSchema(normalized.Event)
+	result, err := engine.ValidateJSON(body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	// 3. Validate
-	result, err := validator.Validate(normalized, schema)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	msg := tui.EventMsg{
-		Name:    normalized.Event,
+		Name:    "unknown", // Will be refined if valid
 		IsValid: result.Valid,
 		Errors:  result.Errors,
+	}
+
+	// For TUI/SSE, we still want the event name if possible
+	if norm, err := engine.GetMapper().Map(body); err == nil {
+		msg.Name = norm.Event
 	}
 
 	if s.Updates != nil {
 		s.Updates <- msg
 	}
 
-	for client := range s.clients {
+	s.mu.RLock()
+	clients := s.clients
+	s.mu.RUnlock()
+	for client := range clients {
 		client <- msg
 	}
 
 	if !result.Valid {
+		if s.DLQ != nil {
+			s.DLQ <- body
+		}
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(result)
 		return
 	}
 

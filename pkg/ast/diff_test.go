@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -40,10 +41,10 @@ func TestDiffPlans_BreakingChanges(t *testing.T) {
 	foundTypeChange := false
 	foundRemoval := false
 	for _, d := range diffs {
-		if contains(d, "Prop1") && contains(d, "type") {
+		if strings.Contains(d, "Prop1") && strings.Contains(d, "type") {
 			foundTypeChange = true
 		}
-		if contains(d, "Prop2") && contains(d, "removed") {
+		if strings.Contains(d, "Prop2") && strings.Contains(d, "removed") {
 			foundRemoval = true
 		}
 	}
@@ -56,6 +57,3 @@ func TestDiffPlans_BreakingChanges(t *testing.T) {
 	}
 }
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || (len(s) > len(substr) && (s[:len(substr)] == substr || contains(s[1:], substr))))
-}

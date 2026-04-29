@@ -15,6 +15,7 @@ import (
 	"github.com/randodev95/event_guard/pkg/parser"
 	"github.com/randodev95/event_guard/pkg/validator"
 	"github.com/spf13/cobra"
+	"github.com/fsnotify/fsnotify"
 )
 
 var port int
@@ -48,7 +49,66 @@ func NewServeCmd() *cobra.Command {
 
 			// 2. Initialize Engine & Server
 			engine := validator.NewEngine(plan)
+			engine.Warmup()
 			handler := api.NewServer(engine)
+
+			// 3. Configure Sink
+			var baseSink api.Sink
+			if url := os.Getenv("EVENT_GUARD_DLQ_WEBHOOK"); url != "" {
+				baseSink = api.NewWebhookSink(url)
+			} else {
+				baseSink = api.NewFileSink("dlq.jsonl")
+			}
+			
+			// Wrap in AsyncSink for scale
+			sink := api.NewAsyncSink(baseSink, 1000, 5)
+			defer sink.Close()
+			handler.SetSink(sink)
+
+			// 4. Admin Reload Handler
+			handler.SetReloadHandler(func() error {
+				data, err := os.ReadFile(servePlanPath)
+				if err != nil {
+					return err
+				}
+				newPlan, err := parser.ParseYAML(data)
+				if err != nil {
+					return err
+				}
+				newEngine := validator.NewEngine(newPlan)
+				newEngine.Warmup()
+				handler.UpdateEngine(newEngine)
+				return nil
+			})
+
+			// 5. Live Reload
+			watcher, err := fsnotify.NewWatcher()
+			if err == nil {
+				go func() {
+					for {
+						select {
+						case event, ok := <-watcher.Events:
+							if !ok { return }
+							if event.Op&fsnotify.Write == fsnotify.Write {
+								slog.Info("config changed, reloading...", "file", servePlanPath)
+								data, err := os.ReadFile(servePlanPath)
+								if err == nil {
+									newPlan, err := parser.ParseYAML(data)
+									if err == nil {
+										newEngine := validator.NewEngine(newPlan)
+										newEngine.Warmup()
+										handler.UpdateEngine(newEngine)
+									}
+								}
+							}
+						case err, ok := <-watcher.Errors:
+							if !ok { return }
+							slog.Error("watcher error", "err", err)
+						}
+					}
+				}()
+				watcher.Add(servePlanPath)
+			}
 
 			srv := &http.Server{
 				Addr:    fmt.Sprintf(":%d", port),

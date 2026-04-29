@@ -1,0 +1,31 @@
+Business Source License 1.1
+
+Parameters:
+
+Licensor: The Event Canvas Team
+Change Date: 2029-04-29
+Licensed Work: EventGuard Telemetry Framework (all source code in this repository)
+Change License: Apache License, Version 2.0
+Additional Use Grant: 
+- Unlimited non-commercial use.
+- Unlimited internal commercial use (use within your own company to validate your own data).
+- Explicit Restriction: You may not provide the Licensed Work as a managed service, 
+  API, or platform-as-a-service where the primary value is the telemetry validation 
+  offered by EventGuard to third parties.
+
+---
+
+License Text:
+
+The Licensor hereby grants you the right to copy, modify, create derivative
+works, redistribute, and make non-production use of the Licensed Work. The
+Licensor also grants you the right to make production use of the Licensed Work
+subject to the Additional Use Grant, and provided that you comply with all of
+the following conditions:
+
+1. The Licensed Work is not used in a way that violates the Additional Use Grant.
+2. All copies and substantial portions of the Licensed Work include this file.
+
+On the Change Date, or the fourth anniversary of the first public release of a 
+specific version of the Licensed Work (whichever comes first), the Change License 
+shall apply to the Licensed Work.
